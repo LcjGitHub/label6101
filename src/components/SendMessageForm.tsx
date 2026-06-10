@@ -6,7 +6,7 @@ import { ContactSelector } from './ContactSelector'
 import type { Contact } from '../types/pager'
 
 export function SendMessageForm() {
-  const { sendMessage, getContactByNumber } = usePager()
+  const { sendMessage, getContactByNumber, replyingTo, cancelReply } = usePager()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [number, setNumber] = useState('')
@@ -16,15 +16,26 @@ export function SendMessageForm() {
   const [status, setStatus] = useState('')
 
   useEffect(() => {
-    const prefillNumber = searchParams.get('number')
-    if (prefillNumber) {
-      setNumber(prefillNumber)
-      const contact = getContactByNumber(prefillNumber)
+    if (replyingTo) {
+      setNumber(replyingTo.number)
+      const contact = getContactByNumber(replyingTo.number)
       if (contact) {
         setSelectedContactId(contact.id)
       }
+      if (replyingTo.tagId) {
+        setSelectedTagId(replyingTo.tagId)
+      }
+    } else {
+      const prefillNumber = searchParams.get('number')
+      if (prefillNumber) {
+        setNumber(prefillNumber)
+        const contact = getContactByNumber(prefillNumber)
+        if (contact) {
+          setSelectedContactId(contact.id)
+        }
+      }
     }
-  }, [searchParams, getContactByNumber])
+  }, [searchParams, getContactByNumber, replyingTo])
 
   const handleContactSelect = (contact: Contact | null) => {
     if (contact) {
@@ -56,14 +67,45 @@ export function SendMessageForm() {
       return
     }
 
-    sendMessage({ number: trimmedNumber, content: trimmedContent, tagId: selectedTagId })
+    sendMessage({
+      number: trimmedNumber,
+      content: trimmedContent,
+      tagId: selectedTagId,
+      replyToId: replyingTo ? replyingTo.id : null,
+    })
     setStatus('OK: 消息已发送')
     setTimeout(() => navigate('/'), 800)
   }
 
+  const replyingToContact = replyingTo ? getContactByNumber(replyingTo.number) : null
+  const replyingToName = replyingToContact ? replyingToContact.name : replyingTo?.number
+
   return (
     <form className="send-form" onSubmit={handleSubmit}>
       <div className="form-title">═══ 发送寻呼 ═══</div>
+
+      {replyingTo && (
+        <div className="reply-preview">
+          <div className="reply-preview-header">
+            <span className="reply-preview-label">↩ 正在回复</span>
+            <button
+              type="button"
+              className="reply-preview-cancel"
+              onClick={() => {
+                cancelReply()
+                setSelectedTagId(null)
+              }}
+            >
+              ✕ 取消
+            </button>
+          </div>
+          <div className="reply-preview-info">
+            <span className="reply-preview-name">{replyingToName}</span>
+            <span className="reply-preview-time">{replyingTo.time.slice(5)}</span>
+          </div>
+          <div className="reply-preview-content">{replyingTo.content}</div>
+        </div>
+      )}
 
       <label className="form-label">
         选择联系人
@@ -118,7 +160,10 @@ export function SendMessageForm() {
         <button
           type="button"
           className="pager-btn"
-          onClick={() => navigate('/')}
+          onClick={() => {
+            cancelReply()
+            navigate('/')
+          }}
         >
           取消 ESC
         </button>

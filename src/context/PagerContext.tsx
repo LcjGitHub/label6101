@@ -51,6 +51,12 @@ interface PagerContextValue {
   getContactByNumber: (number: string) => Contact | undefined
   getContactById: (id: string) => Contact | undefined
   searchContacts: (query: string) => Contact[]
+  replyingTo: PagerMessage | null
+  startReply: (messageId: string) => void
+  cancelReply: () => void
+  getRepliesForMessage: (messageId: string) => PagerMessage[]
+  getMessageById: (id: string | null) => PagerMessage | null
+  getThreadForMessage: (messageId: string) => PagerMessage[]
 }
 
 const PagerContext = createContext<PagerContextValue | null>(null)
@@ -172,6 +178,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   const [showFavoritesOnly, setShowFavoritesOnlyState] = useState(initialShowFavorites)
   const [filterTagId, setFilterTagIdState] = useState<string | null>(initialFilterTagId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [replyingToId, setReplyingToId] = useState<string | null>(null)
 
   const setShowFavoritesOnly = useCallback((value: boolean) => {
     setShowFavoritesOnlyState(value)
@@ -247,6 +254,67 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     [messages, selectedId],
   )
 
+  const replyingTo = useMemo(
+    () => messages.find((msg) => msg.id === replyingToId) ?? null,
+    [messages, replyingToId],
+  )
+
+  const getMessageById = useCallback(
+    (id: string | null) => messages.find((msg) => msg.id === id) ?? null,
+    [messages],
+  )
+
+  const getRepliesForMessage = useCallback(
+    (messageId: string) => messages.filter((msg) => msg.replyToId === messageId),
+    [messages],
+  )
+
+  const getThreadForMessage = useCallback(
+    (messageId: string): PagerMessage[] => {
+      const currentMsg = messages.find((m) => m.id === messageId)
+      if (!currentMsg) return []
+
+      const ancestors: PagerMessage[] = []
+      let ancestorId = currentMsg.replyToId
+      while (ancestorId) {
+        const ancestor = messages.find((m) => m.id === ancestorId)
+        if (ancestor) {
+          ancestors.unshift(ancestor)
+          ancestorId = ancestor.replyToId
+        } else {
+          break
+        }
+      }
+
+      const collectDescendants = (parentId: string): PagerMessage[] => {
+        const directReplies = messages.filter((m) => m.replyToId === parentId)
+        const result: PagerMessage[] = [...directReplies]
+        for (const reply of directReplies) {
+          result.push(...collectDescendants(reply.id))
+        }
+        return result
+      }
+
+      const descendants = collectDescendants(messageId)
+      const allMessages = [...ancestors, currentMsg, ...descendants]
+
+      const uniqueMessages = Array.from(
+        new Map(allMessages.map((m) => [m.id, m])).values(),
+      )
+
+      return uniqueMessages.sort((a, b) => a.time.localeCompare(b.time))
+    },
+    [messages],
+  )
+
+  const startReply = useCallback((messageId: string) => {
+    setReplyingToId(messageId)
+  }, [])
+
+  const cancelReply = useCallback(() => {
+    setReplyingToId(null)
+  }, [])
+
   const getTagById = useCallback(
     (tagId: string | null) => tags.find((t) => t.id === tagId),
     [tags],
@@ -319,9 +387,11 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       read: true,
       favorite: false,
       tagId: input.tagId ?? null,
+      replyToId: input.replyToId ?? null,
     }
     setMessages((prev) => [newMsg, ...prev])
     setSelectedId(id)
+    setReplyingToId(null)
     setShowFavoritesOnlyState(false)
     setFilterTagIdState(input.tagId ?? null)
     try {
@@ -414,6 +484,12 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       getContactByNumber,
       getContactById,
       searchContacts,
+      replyingTo,
+      startReply,
+      cancelReply,
+      getRepliesForMessage,
+      getMessageById,
+      getThreadForMessage,
     }),
     [
       messages,
@@ -445,6 +521,12 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       getContactByNumber,
       getContactById,
       searchContacts,
+      replyingTo,
+      startReply,
+      cancelReply,
+      getRepliesForMessage,
+      getMessageById,
+      getThreadForMessage,
     ],
   )
 

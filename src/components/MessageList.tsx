@@ -10,6 +10,7 @@ interface MessageListProps {
   filterTagId: string | null
   getTagById: (tagId: string | null) => Tag | undefined
   getContactByNumber: (number: string) => Contact | undefined
+  getRepliesForMessage: (messageId: string) => PagerMessage[]
 }
 
 export function MessageList({
@@ -22,6 +23,7 @@ export function MessageList({
   filterTagId,
   getTagById,
   getContactByNumber,
+  getRepliesForMessage,
 }: MessageListProps) {
   if (messages.length === 0) {
     let emptyText = '-- 无匹配记录 --'
@@ -42,16 +44,22 @@ export function MessageList({
         const tag = getTagById(msg.tagId)
         const contact = getContactByNumber(msg.number)
         const displayName = contact ? contact.name : msg.number
+        const replies = getRepliesForMessage(msg.id)
+        const hasReplies = replies.length > 0
+        const isReply = !!msg.replyToId
         return (
           <li key={msg.id}>
             <div className="message-item-wrapper">
               <button
                 type="button"
-                className={`message-item ${selectedId === msg.id ? 'selected' : ''} ${msg.read ? '' : 'unread'} ${msg.favorite ? 'is-favorite' : ''}`}
+                className={`message-item ${selectedId === msg.id ? 'selected' : ''} ${msg.read ? '' : 'unread'} ${msg.favorite ? 'is-favorite' : ''} ${isReply ? 'is-reply' : ''}`}
                 onClick={() => onSelect(msg.id)}
               >
                 <span className="msg-indicator">{msg.read ? ' ' : '▶'}</span>
-                <span className="msg-number">{displayName}</span>
+                <span className="msg-number">
+                  {isReply && <span className="msg-reply-icon" title="回复">↩</span>}
+                  {displayName}
+                </span>
                 <span className="msg-time">{msg.time.slice(5)}</span>
                 <span className="msg-preview">
                   {msg.content.length > 18 ? `${msg.content.slice(0, 18)}…` : msg.content}
@@ -61,6 +69,7 @@ export function MessageList({
                   style={tag ? { borderColor: tag.color, color: tag.color } : {}}
                 >
                   {tag ? tag.name : '无标签'}
+                  {hasReplies && <span className="msg-reply-count"> · {replies.length}回复</span>}
                 </span>
               </button>
               <button

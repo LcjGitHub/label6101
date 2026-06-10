@@ -30,6 +30,10 @@ export function HomePage() {
     getTagById,
     setMessageTag,
     getContactByNumber,
+    getMessageById,
+    getRepliesForMessage,
+    getThreadForMessage,
+    startReply,
   } = usePager()
 
   const handleSelect = (id: string) => {
@@ -110,6 +114,7 @@ export function HomePage() {
         filterTagId={filterTagId}
         getTagById={getTagById}
         getContactByNumber={getContactByNumber}
+        getRepliesForMessage={getRepliesForMessage}
       />
       <MessageDetail
         message={selectedMessage}
@@ -117,6 +122,11 @@ export function HomePage() {
         getTagById={getTagById}
         setMessageTag={setMessageTag}
         getContactByNumber={getContactByNumber}
+        getMessageById={getMessageById}
+        getRepliesForMessage={getRepliesForMessage}
+        getThreadForMessage={getThreadForMessage}
+        onStartReply={startReply}
+        onSelectMessage={handleSelect}
       />
       <div className="action-row">
         <button

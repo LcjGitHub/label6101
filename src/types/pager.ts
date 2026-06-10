@@ -18,12 +18,14 @@ export interface PagerMessage {
   read: boolean
   favorite: boolean
   tagId: string | null
+  replyToId: string | null
 }
 
 export interface NewMessageInput {
   number: string
   content: string
   tagId: string | null
+  replyToId: string | null
 }
 
 export const DEFAULT_TAGS: Tag[] = [
