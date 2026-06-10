@@ -636,3 +636,148 @@ body {
   border-color: var(--green);
   text-shadow: 0 0 4px var(--green-glow);
 }
+
+/* ── Tags ── */
+
+.tag-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.tag-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(51, 255, 102, 0.06);
+  border: 1px solid var(--green-muted);
+  color: var(--green-dim);
+  font-family: inherit;
+  font-size: 0.6rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+
+.tag-chip:hover {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--green);
+}
+
+.tag-chip.active {
+  background: rgba(51, 255, 102, 0.15);
+  border-color: var(--green);
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.tag-add-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tag-add-input {
+  max-width: 100px;
+}
+
+.tag-add-btn {
+  margin-top: 2px;
+}
+
+/* Tags filter row */
+
+.tags-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.tag-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(51, 255, 102, 0.06);
+  border: 1px solid var(--green-muted);
+  color: var(--green-dim);
+  font-family: inherit;
+  font-size: 0.6rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+
+.tag-filter-btn:hover {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--green);
+}
+
+.tag-filter-btn.active {
+  background: rgba(51, 255, 102, 0.18);
+  border-color: var(--green);
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+/* Message list tag */
+
+.msg-tag {
+  grid-column: 1 / -1;
+  display: inline-block;
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border: 1px solid;
+  border-radius: 2px;
+  margin-top: 2px;
+  width: fit-content;
+  opacity: 0.85;
+}
+
+.message-item {
+  grid-template-columns: 14px 1fr auto;
+  grid-template-rows: auto auto auto;
+}
+
+/* Detail tag */
+
+.detail-tag-value {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.detail-tag-edit {
+  font-size: 0.55rem;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+
+.detail-tag-none {
+  color: var(--green-muted);
+  font-style: italic;
+}
+
+.detail-tag-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+

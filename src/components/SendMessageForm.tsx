@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePager } from '../context/PagerContext'
+import { TagSelector } from './TagSelector'
 
 export function SendMessageForm() {
   const { sendMessage } = usePager()
   const navigate = useNavigate()
   const [number, setNumber] = useState('')
   const [content, setContent] = useState('')
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
   const [status, setStatus] = useState('')
 
   const handleSubmit = (e: FormEvent) => {
@@ -24,7 +26,7 @@ export function SendMessageForm() {
       return
     }
 
-    sendMessage({ number: trimmedNumber, content: trimmedContent })
+    sendMessage({ number: trimmedNumber, content: trimmedContent, tagId: selectedTagId })
     setStatus('OK: 消息已发送')
     setTimeout(() => navigate('/'), 800)
   }
@@ -44,6 +46,15 @@ export function SendMessageForm() {
         value={number}
         onChange={(e) => setNumber(e.target.value)}
         maxLength={20}
+      />
+
+      <label className="form-label">
+        分类标签
+      </label>
+      <TagSelector
+        selectedTagId={selectedTagId}
+        onSelect={setSelectedTagId}
+        showAddTag
       />
 
       <label className="form-label" htmlFor="send-content">

@@ -5,6 +5,7 @@ import { NavButtons } from '../components/NavButtons'
 import { PagerShell } from '../components/PagerShell'
 import { StatusBar } from '../components/StatusBar'
 import { usePager } from '../context/PagerContext'
+import type { Tag } from '../types/pager'
 
 export function HomePage() {
   const {
@@ -23,6 +24,11 @@ export function HomePage() {
     favoriteCount,
     addFavorite,
     removeFavorite,
+    tags,
+    filterTagId,
+    setFilterTagId,
+    getTagById,
+    setMessageTag,
   } = usePager()
 
   const handleSelect = (id: string) => {
@@ -38,6 +44,10 @@ export function HomePage() {
     }
   }
 
+  const getTagCount = (tagId: string | null) => {
+    return messages.filter((m) => m.tagId === tagId).length
+  }
+
   return (
     <PagerShell>
       <StatusBar
@@ -45,6 +55,27 @@ export function HomePage() {
         totalCount={filteredMessages.length}
       />
       <FilterBar value={filterNumber} onChange={setFilterNumber} />
+      <div className="tags-filter-row">
+        <button
+          type="button"
+          className={`tag-filter-btn ${filterTagId === null ? 'active' : ''}`}
+          onClick={() => setFilterTagId(null)}
+        >
+          全部 ({messages.length})
+        </button>
+        {tags.map((tag: Tag) => (
+          <button
+            key={tag.id}
+            type="button"
+            className={`tag-filter-btn ${filterTagId === tag.id ? 'active' : ''}`}
+            style={filterTagId === tag.id ? { borderColor: tag.color, color: tag.color, textShadow: `0 0 4px ${tag.color}` } : {}}
+            onClick={() => setFilterTagId(tag.id)}
+          >
+            <span className="tag-dot" style={{ background: tag.color }} />
+            {tag.name} ({getTagCount(tag.id)})
+          </button>
+        ))}
+      </div>
       <div className="favorites-filter-row">
         <button
           type="button"
@@ -65,10 +96,13 @@ export function HomePage() {
         onToggleFavorite={handleToggleFavorite}
         showFavoritesOnly={showFavoritesOnly}
         filterNumber={filterNumber}
+        getTagById={getTagById}
       />
       <MessageDetail
         message={selectedMessage}
         onToggleFavorite={handleToggleFavorite}
+        getTagById={getTagById}
+        setMessageTag={setMessageTag}
       />
       <div className="action-row">
         <button
