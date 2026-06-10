@@ -3,16 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import { NavButtons } from '../components/NavButtons'
 import { PagerShell } from '../components/PagerShell'
 import { StatusBar } from '../components/StatusBar'
+import { GroupManager } from '../components/GroupManager'
+import { GroupSelector } from '../components/GroupSelector'
 import { usePager } from '../context/PagerContext'
+import { FILTER_NO_GROUP } from '../context/PagerContext'
 import type { Contact } from '../types/pager'
 
 interface EditableContact {
   id: string | null
   name: string
   number: string
+  groupId: string | null
 }
 
-const EMPTY_CONTACT: EditableContact = { id: null, name: '', number: '' }
+const EMPTY_CONTACT: EditableContact = { id: null, name: '', number: '', groupId: null }
 
 export function ContactsPage() {
   const navigate = useNavigate()
@@ -22,28 +26,44 @@ export function ContactsPage() {
     addContact,
     updateContact,
     removeContact,
+    removeContactBatch,
+    setContactGroupBatch,
     unreadCount,
     messages,
+    getGroupById,
   } = usePager()
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterGroupId, setFilterGroupId] = useState<string | null>(null)
   const [editing, setEditing] = useState<EditableContact>(EMPTY_CONTACT)
   const [showForm, setShowForm] = useState(false)
   const [status, setStatus] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [batchMode, setBatchMode] = useState(false)
+  const [showBatchGroupSelect, setShowBatchGroupSelect] = useState(false)
 
   const filteredContacts = useMemo(
-    () => searchContacts(searchQuery),
-    [searchContacts, searchQuery],
+    () => searchContacts(searchQuery, filterGroupId),
+    [searchContacts, searchQuery, filterGroupId],
   )
 
+  const allSelected = useMemo(() => {
+    return filteredContacts.length > 0 && filteredContacts.every((c) => selectedIds.has(c.id))
+  }, [filteredContacts, selectedIds])
+
   const startAdd = () => {
-    setEditing(EMPTY_CONTACT)
+    setEditing({ ...EMPTY_CONTACT, groupId: filterGroupId && filterGroupId !== FILTER_NO_GROUP ? filterGroupId : null })
     setShowForm(true)
     setStatus('')
   }
 
   const startEdit = (contact: Contact) => {
-    setEditing({ id: contact.id, name: contact.name, number: contact.number })
+    setEditing({
+      id: contact.id,
+      name: contact.name,
+      number: contact.number,
+      groupId: contact.groupId,
+    })
     setShowForm(true)
     setStatus('')
   }
@@ -72,7 +92,7 @@ export function ContactsPage() {
         setStatus('ERR: 该号码已存在')
         return
       }
-      updateContact(editing.id, trimmedName, trimmedNumber)
+      updateContact(editing.id, trimmedName, trimmedNumber, editing.groupId)
       setStatus('OK: 联系人已更新')
     } else {
       const existing = contacts.find((c) => c.number === trimmedNumber)
@@ -80,7 +100,7 @@ export function ContactsPage() {
         setStatus('ERR: 该号码已存在')
         return
       }
-      addContact(trimmedName, trimmedNumber)
+      addContact(trimmedName, trimmedNumber, editing.groupId)
       setStatus('OK: 联系人已添加')
     }
 
@@ -95,7 +115,56 @@ export function ContactsPage() {
     const ok = window.confirm('确定删除该联系人？')
     if (ok) {
       removeContact(id)
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
     }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredContacts.map((c) => c.id)))
+    }
+  }
+
+  const handleBatchDelete = () => {
+    if (selectedIds.size === 0) return
+    const ok = window.confirm(`确定删除选中的 ${selectedIds.size} 位联系人？`)
+    if (ok) {
+      removeContactBatch([...selectedIds])
+      setSelectedIds(new Set())
+      setBatchMode(false)
+    }
+  }
+
+  const handleBatchMoveGroup = (groupId: string | null) => {
+    if (selectedIds.size === 0) return
+    const targetGroupId = groupId === FILTER_NO_GROUP ? null : groupId
+    setContactGroupBatch([...selectedIds], targetGroupId)
+    setSelectedIds(new Set())
+    setShowBatchGroupSelect(false)
+    setBatchMode(false)
+  }
+
+  const clearSelection = () => {
+    setSelectedIds(new Set())
+    setBatchMode(false)
   }
 
   return (
@@ -112,6 +181,16 @@ export function ContactsPage() {
 
       {!showForm ? (
         <>
+          <GroupManager />
+
+          <div className="group-filter-row">
+            <GroupSelector
+              selectedGroupId={filterGroupId}
+              onSelect={setFilterGroupId}
+              showGroupCounts={true}
+            />
+          </div>
+
           <div className="contacts-search-row">
             <label className="form-label">搜索</label>
             <input
@@ -131,10 +210,63 @@ export function ContactsPage() {
             >
               + 新增联系人
             </button>
+            <button
+              type="button"
+              className={`pager-btn pager-btn-sm ${batchMode ? 'active' : ''}`}
+              onClick={() => setBatchMode(!batchMode)}
+            >
+              {batchMode ? '退出批量' : '批量操作'}
+            </button>
             <span className="action-hint">
               共 {contacts.length} 位 · 匹配 {filteredContacts.length} 位
             </span>
           </div>
+
+          {batchMode && (
+            <div className="batch-action-row">
+              <button
+                type="button"
+                className="pager-btn pager-btn-sm"
+                onClick={toggleSelectAll}
+              >
+                {allSelected ? '取消全选' : '全选'}
+              </button>
+              <button
+                type="button"
+                className="pager-btn pager-btn-sm"
+                onClick={() => setShowBatchGroupSelect(!showBatchGroupSelect)}
+                disabled={selectedIds.size === 0}
+              >
+                移动分组
+              </button>
+              <button
+                type="button"
+                className="pager-btn pager-btn-sm"
+                onClick={handleBatchDelete}
+                disabled={selectedIds.size === 0}
+              >
+                删除选中 ({selectedIds.size})
+              </button>
+              <button
+                type="button"
+                className="pager-btn pager-btn-sm"
+                onClick={clearSelection}
+              >
+                清除选择
+              </button>
+            </div>
+          )}
+
+          {batchMode && showBatchGroupSelect && (
+            <div className="batch-group-select">
+              <div className="form-label">选择目标分组</div>
+              <GroupSelector
+                selectedGroupId={null}
+                onSelect={handleBatchMoveGroup}
+                showGroupCounts={false}
+              />
+            </div>
+          )}
 
           {filteredContacts.length === 0 ? (
             <div className="empty-list">
@@ -142,37 +274,66 @@ export function ContactsPage() {
             </div>
           ) : (
             <ul className="contact-list">
-              {filteredContacts.map((contact) => (
-                <li key={contact.id} className="contact-list-item">
-                  <div className="contact-list-info">
-                    <span className="contact-list-name">{contact.name}</span>
-                    <span className="contact-list-number">{contact.number}</span>
-                  </div>
-                  <div className="contact-list-actions">
-                    <button
-                      type="button"
-                      className="pager-btn pager-btn-sm"
-                      onClick={() => startEdit(contact)}
-                    >
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      className="pager-btn pager-btn-sm"
-                      onClick={() => handleDelete(contact.id)}
-                    >
-                      删除
-                    </button>
-                    <button
-                      type="button"
-                      className="pager-btn pager-btn-sm pager-btn-primary"
-                      onClick={() => navigate(`/send?number=${encodeURIComponent(contact.number)}`)}
-                    >
-                      发消息
-                    </button>
-                  </div>
-                </li>
-              ))}
+              {filteredContacts.map((contact) => {
+                const group = getGroupById(contact.groupId)
+                const isSelected = selectedIds.has(contact.id)
+                return (
+                  <li
+                    key={contact.id}
+                    className={`contact-list-item ${isSelected ? 'selected' : ''}`}
+                  >
+                    {batchMode && (
+                      <input
+                        type="checkbox"
+                        className="contact-checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(contact.id)}
+                      />
+                    )}
+                    <div className="contact-list-info">
+                      <div className="contact-list-header">
+                        <span className="contact-list-name">{contact.name}</span>
+                        {group && (
+                          <span
+                            className="contact-group-tag"
+                            style={{ borderColor: group.color, color: group.color }}
+                          >
+                            <span
+                              className="group-dot"
+                              style={{ background: group.color }}
+                            />
+                            {group.name}
+                          </span>
+                        )}
+                      </div>
+                      <span className="contact-list-number">{contact.number}</span>
+                    </div>
+                    <div className="contact-list-actions">
+                      <button
+                        type="button"
+                        className="pager-btn pager-btn-sm"
+                        onClick={() => startEdit(contact)}
+                      >
+                        编辑
+                      </button>
+                      <button
+                        type="button"
+                        className="pager-btn pager-btn-sm"
+                        onClick={() => handleDelete(contact.id)}
+                      >
+                        删除
+                      </button>
+                      <button
+                        type="button"
+                        className="pager-btn pager-btn-sm pager-btn-primary"
+                        onClick={() => navigate(`/send?number=${encodeURIComponent(contact.number)}`)}
+                      >
+                        发消息
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </>
@@ -207,6 +368,16 @@ export function ContactsPage() {
             onChange={(e) => setEditing({ ...editing, number: e.target.value })}
             maxLength={20}
           />
+
+          <label className="form-label">分组</label>
+          <div className="contact-group-select">
+            <GroupSelector
+              selectedGroupId={editing.groupId ?? FILTER_NO_GROUP}
+              onSelect={(id) => setEditing({ ...editing, groupId: id === FILTER_NO_GROUP ? null : id })}
+              showAllOption={false}
+              showGroupCounts={false}
+            />
+          </div>
 
           {status && <div className="form-status">{status}</div>}
 

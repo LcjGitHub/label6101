@@ -8,8 +8,8 @@ import {
   type ReactNode,
 } from 'react'
 import { mockMessages } from '../data/mockMessages'
-import type { Contact, NewMessageInput, PagerMessage, RepeatType, ScheduledMessage, Tag } from '../types/pager'
-import { DEFAULT_TAGS } from '../types/pager'
+import type { Contact, Group, NewMessageInput, PagerMessage, RepeatType, ScheduledMessage, Tag } from '../types/pager'
+import { DEFAULT_TAGS, DEFAULT_GROUPS } from '../types/pager'
 
 const FAVORITES_STORAGE_KEY = 'pager_favorites'
 const PINS_STORAGE_KEY = 'pager_pins'
@@ -18,14 +18,18 @@ const TAGS_STORAGE_KEY = 'pager_tags'
 const FILTER_TAG_STORAGE_KEY = 'pager_filter_tag'
 const CONTACTS_STORAGE_KEY = 'pager_contacts'
 const SCHEDULED_MESSAGES_STORAGE_KEY = 'pager_scheduled_messages'
+const GROUPS_STORAGE_KEY = 'pager_groups'
+const FILTER_GROUP_STORAGE_KEY = 'pager_filter_group'
 
 export const FILTER_NO_TAG = '__no_tag__'
+export const FILTER_NO_GROUP = '__no_group__'
 
 interface PagerContextValue {
   messages: PagerMessage[]
   favoriteMessages: PagerMessage[]
   pinnedMessages: PagerMessage[]
   tags: Tag[]
+  groups: Group[]
   contacts: Contact[]
   filterNumber: string
   setFilterNumber: (value: string) => void
@@ -33,6 +37,8 @@ interface PagerContextValue {
   setShowFavoritesOnly: (value: boolean) => void
   filterTagId: string | null
   setFilterTagId: (tagId: string | null) => void
+  filterGroupId: string | null
+  setFilterGroupId: (groupId: string | null) => void
   filteredMessages: PagerMessage[]
   favoriteCount: number
   pinnedCount: number
@@ -47,15 +53,23 @@ interface PagerContextValue {
   removeTag: (tagId: string) => void
   setMessageTag: (messageId: string, tagId: string | null) => void
   getTagById: (tagId: string | null) => Tag | undefined
+  addGroup: (name: string, color?: string) => void
+  updateGroup: (id: string, name: string, color?: string) => void
+  removeGroup: (groupId: string) => void
+  getGroupById: (groupId: string | null) => Group | undefined
+  setContactGroup: (contactId: string, groupId: string | null) => void
+  setContactGroupBatch: (contactIds: string[], groupId: string | null) => void
+  getContactsByGroup: (groupId: string | null) => Contact[]
+  searchContacts: (query: string, groupId?: string | null) => Contact[]
   selectedId: string | null
   setSelectedId: (id: string | null) => void
   selectedMessage: PagerMessage | null
-  addContact: (name: string, number: string) => void
-  updateContact: (id: string, name: string, number: string) => void
+  addContact: (name: string, number: string, groupId?: string | null) => void
+  updateContact: (id: string, name: string, number: string, groupId?: string | null) => void
   removeContact: (id: string) => void
+  removeContactBatch: (ids: string[]) => void
   getContactByNumber: (number: string) => Contact | undefined
   getContactById: (id: string) => Contact | undefined
-  searchContacts: (query: string) => Contact[]
   replyingTo: PagerMessage | null
   startReply: (messageId: string) => void
   cancelReply: () => void
@@ -232,6 +246,27 @@ function saveContacts(contacts: Contact[]) {
   }
 }
 
+function loadGroups(): Group[] {
+  try {
+    const stored = localStorage.getItem(GROUPS_STORAGE_KEY)
+    if (stored) {
+      const groups = JSON.parse(stored)
+      if (Array.isArray(groups) && groups.length > 0) return groups
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return DEFAULT_GROUPS
+}
+
+function saveGroups(groups: Group[]) {
+  try {
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 function loadScheduledMessages(): ScheduledMessage[] {
   try {
     const stored = localStorage.getItem(SCHEDULED_MESSAGES_STORAGE_KEY)
@@ -284,11 +319,20 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
   const initialTags = useMemo(() => loadTags(), [])
+  const initialGroups = useMemo(() => loadGroups(), [])
   const initialContacts = useMemo(() => loadContacts(), [])
   const initialScheduledMessages = useMemo(() => loadScheduledMessages(), [])
   const initialFilterTagId = useMemo(() => {
     try {
       const stored = localStorage.getItem(FILTER_TAG_STORAGE_KEY)
+      return stored === 'null' ? null : stored || null
+    } catch {
+      return null
+    }
+  }, [])
+  const initialFilterGroupId = useMemo(() => {
+    try {
+      const stored = localStorage.getItem(FILTER_GROUP_STORAGE_KEY)
       return stored === 'null' ? null : stored || null
     } catch {
       return null
@@ -308,11 +352,13 @@ export function PagerProvider({ children }: { children: ReactNode }) {
 
   const [messages, setMessages] = useState<PagerMessage[]>(initialMessages)
   const [tags, setTags] = useState<Tag[]>(initialTags)
+  const [groups, setGroups] = useState<Group[]>(initialGroups)
   const [contacts, setContacts] = useState<Contact[]>(initialContacts)
   const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>(initialScheduledMessages)
   const [filterNumber, setFilterNumber] = useState('')
   const [showFavoritesOnly, setShowFavoritesOnlyState] = useState(initialShowFavorites)
   const [filterTagId, setFilterTagIdState] = useState<string | null>(initialFilterTagId)
+  const [filterGroupId, setFilterGroupIdState] = useState<string | null>(initialFilterGroupId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
 
@@ -334,9 +380,22 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const setFilterGroupId = useCallback((groupId: string | null) => {
+    setFilterGroupIdState(groupId)
+    try {
+      localStorage.setItem(FILTER_GROUP_STORAGE_KEY, groupId ?? 'null')
+    } catch {
+      // ignore storage errors
+    }
+  }, [])
+
   useEffect(() => {
     saveTags(tags)
   }, [tags])
+
+  useEffect(() => {
+    saveGroups(groups)
+  }, [groups])
 
   useEffect(() => {
     saveContacts(contacts)
@@ -497,6 +556,68 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     [tags],
   )
 
+  const getGroupById = useCallback(
+    (groupId: string | null) => groups.find((g) => g.id === groupId),
+    [groups],
+  )
+
+  const addGroup = useCallback((name: string, color?: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) return
+    setGroups((prev) => {
+      if (prev.some((g) => g.name === trimmedName)) return prev
+      const id = `group_${Date.now()}`
+      const groupColor = color || TAG_COLORS[prev.length % TAG_COLORS.length]
+      return [...prev, { id, name: trimmedName, color: groupColor }]
+    })
+  }, [])
+
+  const updateGroup = useCallback((id: string, name: string, color?: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) return
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === id ? { ...g, name: trimmedName, color: color || g.color } : g,
+      ),
+    )
+  }, [])
+
+  const removeGroup = useCallback((groupId: string) => {
+    setGroups((prev) => prev.filter((g) => g.id !== groupId))
+    setContacts((prev) =>
+      prev.map((c) => (c.groupId === groupId ? { ...c, groupId: null } : c)),
+    )
+    setFilterGroupIdState((prev) => (prev === groupId ? null : prev))
+  }, [])
+
+  const setContactGroup = useCallback((contactId: string, groupId: string | null) => {
+    setContacts((prev) =>
+      prev.map((c) =>
+        c.id === contactId ? { ...c, groupId } : c,
+      ),
+    )
+  }, [])
+
+  const setContactGroupBatch = useCallback((contactIds: string[], groupId: string | null) => {
+    const idSet = new Set(contactIds)
+    setContacts((prev) =>
+      prev.map((c) =>
+        idSet.has(c.id) ? { ...c, groupId } : c,
+      ),
+    )
+  }, [])
+
+  const getContactsByGroup = useCallback(
+    (groupId: string | null) => {
+      if (groupId === FILTER_NO_GROUP) {
+        return contacts.filter((c) => c.groupId === null)
+      }
+      if (groupId === null) return contacts
+      return contacts.filter((c) => c.groupId === groupId)
+    },
+    [contacts],
+  )
+
   const getContactByNumber = useCallback(
     (number: string) => contacts.find((c) => c.number === number.trim()),
     [contacts],
@@ -508,40 +629,55 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   )
 
   const searchContacts = useCallback(
-    (query: string) => {
+    (query: string, groupId?: string | null) => {
       const q = query.trim().toLowerCase()
-      if (!q) return contacts
-      return contacts.filter(
+      let result = contacts
+      if (groupId !== undefined && groupId !== null) {
+        if (groupId === FILTER_NO_GROUP) {
+          result = result.filter((c) => c.groupId === null)
+        } else {
+          result = result.filter((c) => c.groupId === groupId)
+        }
+      }
+      if (!q) return result
+      return result.filter(
         (c) => c.name.toLowerCase().includes(q) || c.number.includes(q),
       )
     },
     [contacts],
   )
 
-  const addContact = useCallback((name: string, number: string) => {
+  const addContact = useCallback((name: string, number: string, groupId: string | null = null) => {
     const trimmedName = name.trim()
     const trimmedNumber = number.trim()
     if (!trimmedName || !trimmedNumber) return
     setContacts((prev) => {
       if (prev.some((c) => c.number === trimmedNumber)) return prev
       const id = `contact_${Date.now()}`
-      return [...prev, { id, name: trimmedName, number: trimmedNumber }]
+      return [...prev, { id, name: trimmedName, number: trimmedNumber, groupId }]
     })
   }, [])
 
-  const updateContact = useCallback((id: string, name: string, number: string) => {
+  const updateContact = useCallback((id: string, name: string, number: string, groupId?: string | null) => {
     const trimmedName = name.trim()
     const trimmedNumber = number.trim()
     if (!trimmedName || !trimmedNumber) return
     setContacts((prev) =>
       prev.map((c) =>
-        c.id === id ? { ...c, name: trimmedName, number: trimmedNumber } : c,
+        c.id === id
+          ? { ...c, name: trimmedName, number: trimmedNumber, groupId: groupId ?? c.groupId }
+          : c,
       ),
     )
   }, [])
 
   const removeContact = useCallback((id: string) => {
     setContacts((prev) => prev.filter((c) => c.id !== id))
+  }, [])
+
+  const removeContactBatch = useCallback((ids: string[]) => {
+    const idSet = new Set(ids)
+    setContacts((prev) => prev.filter((c) => !idSet.has(c.id)))
   }, [])
 
   const markAsRead = useCallback((id: string) => {
@@ -837,6 +973,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       favoriteMessages,
       pinnedMessages,
       tags,
+      groups,
       contacts,
       filterNumber,
       setFilterNumber,
@@ -844,6 +981,8 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       setShowFavoritesOnly,
       filterTagId,
       setFilterTagId,
+      filterGroupId,
+      setFilterGroupId,
       filteredMessages,
       favoriteCount,
       pinnedCount,
@@ -858,12 +997,20 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       removeTag,
       setMessageTag,
       getTagById,
+      addGroup,
+      updateGroup,
+      removeGroup,
+      getGroupById,
+      setContactGroup,
+      setContactGroupBatch,
+      getContactsByGroup,
       selectedId,
       setSelectedId,
       selectedMessage,
       addContact,
       updateContact,
       removeContact,
+      removeContactBatch,
       getContactByNumber,
       getContactById,
       searchContacts,
@@ -885,6 +1032,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       favoriteMessages,
       pinnedMessages,
       tags,
+      groups,
       contacts,
       scheduledMessages,
       filterNumber,
@@ -892,6 +1040,8 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       setShowFavoritesOnly,
       filterTagId,
       setFilterTagId,
+      filterGroupId,
+      setFilterGroupId,
       filteredMessages,
       favoriteCount,
       pinnedCount,
@@ -906,11 +1056,19 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       removeTag,
       setMessageTag,
       getTagById,
+      addGroup,
+      updateGroup,
+      removeGroup,
+      getGroupById,
+      setContactGroup,
+      setContactGroupBatch,
+      getContactsByGroup,
       selectedId,
       selectedMessage,
       addContact,
       updateContact,
       removeContact,
+      removeContactBatch,
       getContactByNumber,
       getContactById,
       searchContacts,

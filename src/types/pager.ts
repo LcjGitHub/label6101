@@ -4,10 +4,17 @@ export interface Tag {
   color: string
 }
 
+export interface Group {
+  id: string
+  name: string
+  color: string
+}
+
 export interface Contact {
   id: string
   name: string
   number: string
+  groupId: string | null
 }
 
 export interface PagerMessage {
@@ -50,6 +57,13 @@ export const DEFAULT_TAGS: Tag[] = [
   { id: 'work', name: '工作', color: '#33ff66' },
   { id: 'family', name: '家人', color: '#ff6699' },
   { id: 'friend', name: '朋友', color: '#66ccff' },
+  { id: 'other', name: '其他', color: '#ffcc66' },
+]
+
+export const DEFAULT_GROUPS: Group[] = [
+  { id: 'colleague', name: '同事', color: '#33ff66' },
+  { id: 'client', name: '客户', color: '#ff6699' },
+  { id: 'family', name: '亲友', color: '#66ccff' },
   { id: 'other', name: '其他', color: '#ffcc66' },
 ]
 

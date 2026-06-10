@@ -1574,3 +1574,251 @@ body {
   filter: drop-shadow(0 0 2px var(--green-glow));
 }
 
+/* ── Group Manager ── */
+
+.group-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-toggle-btn {
+  width: 100%;
+  background: rgba(51, 255, 102, 0.06);
+  border: 1px solid var(--green-muted);
+  color: var(--green);
+  font-family: inherit;
+  font-size: 0.65rem;
+  padding: 5px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.group-toggle-btn:hover {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--green);
+}
+
+.group-toggle-btn.active {
+  background: rgba(51, 255, 102, 0.15);
+  border-color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.group-manager-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--green-muted);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.group-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.group-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--green-muted) transparent;
+}
+
+.group-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 6px;
+  border-bottom: 1px dotted var(--text-dim);
+}
+
+.group-list-item:last-child {
+  border-bottom: none;
+}
+
+.group-list-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.group-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.group-list-name {
+  font-size: 0.65rem;
+  color: var(--green);
+  font-weight: bold;
+}
+
+.group-list-count {
+  font-size: 0.55rem;
+  color: var(--green-muted);
+}
+
+.group-list-actions {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.group-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-color-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.group-color-btn {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.group-color-btn:hover {
+  transform: scale(1.1);
+}
+
+.group-color-btn.active {
+  border-color: var(--green);
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* ── Group Selector ── */
+
+.group-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(51, 255, 102, 0.06);
+  border: 1px solid var(--green-muted);
+  color: var(--green-dim);
+  font-family: inherit;
+  font-size: 0.58rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+
+.group-chip:hover {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--green);
+}
+
+.group-chip.active {
+  background: rgba(51, 255, 102, 0.15);
+  border-color: var(--green);
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.group-count {
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+/* ── Contacts Page with Groups ── */
+
+.group-filter-row {
+  padding-bottom: 2px;
+}
+
+.contact-list-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.contact-group-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.52rem;
+  padding: 1px 5px;
+  border: 1px solid;
+  border-radius: 2px;
+  opacity: 0.85;
+}
+
+.contact-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--green);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.contact-list-item.selected {
+  background: rgba(51, 255, 102, 0.08);
+  border-left: 2px solid var(--green);
+}
+
+.batch-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(51, 255, 102, 0.04);
+  border: 1px dashed var(--green-muted);
+}
+
+.batch-group-select {
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--green-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-group-select {
+  padding: 4px 0;
+}
+
+/* ── Contact list adjustments for checkbox ── */
+
+.contact-list-item:has(.contact-checkbox) {
+  padding-left: 4px;
+}
+
+
