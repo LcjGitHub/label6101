@@ -8,13 +8,14 @@ import {
   type ReactNode,
 } from 'react'
 import { mockMessages } from '../data/mockMessages'
-import type { NewMessageInput, PagerMessage, Tag } from '../types/pager'
+import type { Contact, NewMessageInput, PagerMessage, Tag } from '../types/pager'
 import { DEFAULT_TAGS } from '../types/pager'
 
 const FAVORITES_STORAGE_KEY = 'pager_favorites'
 const SHOW_FAVORITES_STORAGE_KEY = 'pager_show_favorites_only'
 const TAGS_STORAGE_KEY = 'pager_tags'
 const FILTER_TAG_STORAGE_KEY = 'pager_filter_tag'
+const CONTACTS_STORAGE_KEY = 'pager_contacts'
 
 export const FILTER_NO_TAG = '__no_tag__'
 
@@ -22,6 +23,7 @@ interface PagerContextValue {
   messages: PagerMessage[]
   favoriteMessages: PagerMessage[]
   tags: Tag[]
+  contacts: Contact[]
   filterNumber: string
   setFilterNumber: (value: string) => void
   showFavoritesOnly: boolean
@@ -43,6 +45,12 @@ interface PagerContextValue {
   selectedId: string | null
   setSelectedId: (id: string | null) => void
   selectedMessage: PagerMessage | null
+  addContact: (name: string, number: string) => void
+  updateContact: (id: string, name: string, number: string) => void
+  removeContact: (id: string) => void
+  getContactByNumber: (number: string) => Contact | undefined
+  getContactById: (id: string) => Contact | undefined
+  searchContacts: (query: string) => Contact[]
 }
 
 const PagerContext = createContext<PagerContextValue | null>(null)
@@ -95,6 +103,27 @@ function saveTags(tags: Tag[]) {
   }
 }
 
+function loadContacts(): Contact[] {
+  try {
+    const stored = localStorage.getItem(CONTACTS_STORAGE_KEY)
+    if (stored) {
+      const contacts = JSON.parse(stored)
+      if (Array.isArray(contacts)) return contacts
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return []
+}
+
+function saveContacts(contacts: Contact[]) {
+  try {
+    localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(contacts))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 const TAG_COLORS = [
   '#33ff66',
   '#ff6699',
@@ -117,6 +146,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
   const initialTags = useMemo(() => loadTags(), [])
+  const initialContacts = useMemo(() => loadContacts(), [])
   const initialFilterTagId = useMemo(() => {
     try {
       const stored = localStorage.getItem(FILTER_TAG_STORAGE_KEY)
@@ -137,6 +167,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
 
   const [messages, setMessages] = useState<PagerMessage[]>(initialMessages)
   const [tags, setTags] = useState<Tag[]>(initialTags)
+  const [contacts, setContacts] = useState<Contact[]>(initialContacts)
   const [filterNumber, setFilterNumber] = useState('')
   const [showFavoritesOnly, setShowFavoritesOnlyState] = useState(initialShowFavorites)
   const [filterTagId, setFilterTagIdState] = useState<string | null>(initialFilterTagId)
@@ -163,6 +194,10 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveTags(tags)
   }, [tags])
+
+  useEffect(() => {
+    saveContacts(contacts)
+  }, [contacts])
 
   const favoriteMessages = useMemo(
     () => messages.filter((msg) => msg.favorite),
@@ -216,6 +251,53 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     (tagId: string | null) => tags.find((t) => t.id === tagId),
     [tags],
   )
+
+  const getContactByNumber = useCallback(
+    (number: string) => contacts.find((c) => c.number === number.trim()),
+    [contacts],
+  )
+
+  const getContactById = useCallback(
+    (id: string) => contacts.find((c) => c.id === id),
+    [contacts],
+  )
+
+  const searchContacts = useCallback(
+    (query: string) => {
+      const q = query.trim().toLowerCase()
+      if (!q) return contacts
+      return contacts.filter(
+        (c) => c.name.toLowerCase().includes(q) || c.number.includes(q),
+      )
+    },
+    [contacts],
+  )
+
+  const addContact = useCallback((name: string, number: string) => {
+    const trimmedName = name.trim()
+    const trimmedNumber = number.trim()
+    if (!trimmedName || !trimmedNumber) return
+    setContacts((prev) => {
+      if (prev.some((c) => c.number === trimmedNumber)) return prev
+      const id = `contact_${Date.now()}`
+      return [...prev, { id, name: trimmedName, number: trimmedNumber }]
+    })
+  }, [])
+
+  const updateContact = useCallback((id: string, name: string, number: string) => {
+    const trimmedName = name.trim()
+    const trimmedNumber = number.trim()
+    if (!trimmedName || !trimmedNumber) return
+    setContacts((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, name: trimmedName, number: trimmedNumber } : c,
+      ),
+    )
+  }, [])
+
+  const removeContact = useCallback((id: string) => {
+    setContacts((prev) => prev.filter((c) => c.id !== id))
+  }, [])
 
   const markAsRead = useCallback((id: string) => {
     setMessages((prev) =>
@@ -304,6 +386,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       messages,
       favoriteMessages,
       tags,
+      contacts,
       filterNumber,
       setFilterNumber,
       showFavoritesOnly,
@@ -325,11 +408,18 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       selectedId,
       setSelectedId,
       selectedMessage,
+      addContact,
+      updateContact,
+      removeContact,
+      getContactByNumber,
+      getContactById,
+      searchContacts,
     }),
     [
       messages,
       favoriteMessages,
       tags,
+      contacts,
       filterNumber,
       showFavoritesOnly,
       setShowFavoritesOnly,
@@ -349,6 +439,12 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       getTagById,
       selectedId,
       selectedMessage,
+      addContact,
+      updateContact,
+      removeContact,
+      getContactByNumber,
+      getContactById,
+      searchContacts,
     ],
   )
 

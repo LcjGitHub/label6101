@@ -1,15 +1,46 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePager } from '../context/PagerContext'
 import { TagSelector } from './TagSelector'
+import { ContactSelector } from './ContactSelector'
+import type { Contact } from '../types/pager'
 
 export function SendMessageForm() {
-  const { sendMessage } = usePager()
+  const { sendMessage, getContactByNumber } = usePager()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [number, setNumber] = useState('')
   const [content, setContent] = useState('')
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
   const [status, setStatus] = useState('')
+
+  useEffect(() => {
+    const prefillNumber = searchParams.get('number')
+    if (prefillNumber) {
+      setNumber(prefillNumber)
+      const contact = getContactByNumber(prefillNumber)
+      if (contact) {
+        setSelectedContactId(contact.id)
+      }
+    }
+  }, [searchParams, getContactByNumber])
+
+  const handleContactSelect = (contact: Contact | null) => {
+    if (contact) {
+      setSelectedContactId(contact.id)
+      setNumber(contact.number)
+    } else {
+      setSelectedContactId(null)
+      setNumber('')
+    }
+  }
+
+  const handleNumberChange = (value: string) => {
+    setNumber(value)
+    const contact = getContactByNumber(value)
+    setSelectedContactId(contact ? contact.id : null)
+  }
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -35,6 +66,14 @@ export function SendMessageForm() {
     <form className="send-form" onSubmit={handleSubmit}>
       <div className="form-title">═══ 发送寻呼 ═══</div>
 
+      <label className="form-label">
+        选择联系人
+      </label>
+      <ContactSelector
+        selectedContactId={selectedContactId}
+        onSelect={handleContactSelect}
+      />
+
       <label className="form-label" htmlFor="send-number">
         对方号码
       </label>
@@ -44,7 +83,7 @@ export function SendMessageForm() {
         className="pager-input full"
         placeholder="如 13801234567"
         value={number}
-        onChange={(e) => setNumber(e.target.value)}
+        onChange={(e) => handleNumberChange(e.target.value)}
         maxLength={20}
       />
 

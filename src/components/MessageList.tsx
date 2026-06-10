@@ -1,4 +1,4 @@
-import type { PagerMessage, Tag } from '../types/pager'
+import type { Contact, PagerMessage, Tag } from '../types/pager'
 
 interface MessageListProps {
   messages: PagerMessage[]
@@ -9,6 +9,7 @@ interface MessageListProps {
   filterNumber: string
   filterTagId: string | null
   getTagById: (tagId: string | null) => Tag | undefined
+  getContactByNumber: (number: string) => Contact | undefined
 }
 
 export function MessageList({
@@ -20,6 +21,7 @@ export function MessageList({
   filterNumber,
   filterTagId,
   getTagById,
+  getContactByNumber,
 }: MessageListProps) {
   if (messages.length === 0) {
     let emptyText = '-- 无匹配记录 --'
@@ -38,6 +40,8 @@ export function MessageList({
     <ul className="message-list">
       {messages.map((msg) => {
         const tag = getTagById(msg.tagId)
+        const contact = getContactByNumber(msg.number)
+        const displayName = contact ? `${contact.name} (${msg.number})` : msg.number
         return (
           <li key={msg.id}>
             <div className="message-item-wrapper">
@@ -47,7 +51,7 @@ export function MessageList({
                 onClick={() => onSelect(msg.id)}
               >
                 <span className="msg-indicator">{msg.read ? ' ' : '▶'}</span>
-                <span className="msg-number">{msg.number}</span>
+                <span className="msg-number">{displayName}</span>
                 <span className="msg-time">{msg.time.slice(5)}</span>
                 <span className="msg-preview">
                   {msg.content.length > 18 ? `${msg.content.slice(0, 18)}…` : msg.content}

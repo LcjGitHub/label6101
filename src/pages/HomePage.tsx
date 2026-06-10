@@ -29,6 +29,7 @@ export function HomePage() {
     setFilterTagId,
     getTagById,
     setMessageTag,
+    getContactByNumber,
   } = usePager()
 
   const handleSelect = (id: string) => {
@@ -108,12 +109,14 @@ export function HomePage() {
         filterNumber={filterNumber}
         filterTagId={filterTagId}
         getTagById={getTagById}
+        getContactByNumber={getContactByNumber}
       />
       <MessageDetail
         message={selectedMessage}
         onToggleFavorite={handleToggleFavorite}
         getTagById={getTagById}
         setMessageTag={setMessageTag}
+        getContactByNumber={getContactByNumber}
       />
       <div className="action-row">
         <button

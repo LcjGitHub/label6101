@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { PagerMessage, Tag } from '../types/pager'
+import type { Contact, PagerMessage, Tag } from '../types/pager'
 import { TagSelector } from './TagSelector'
 
 interface MessageDetailProps {
@@ -7,9 +7,10 @@ interface MessageDetailProps {
   onToggleFavorite: (id: string, currentlyFavorite: boolean) => void
   getTagById: (tagId: string | null) => Tag | undefined
   setMessageTag: (messageId: string, tagId: string | null) => void
+  getContactByNumber: (number: string) => Contact | undefined
 }
 
-export function MessageDetail({ message, onToggleFavorite, getTagById, setMessageTag }: MessageDetailProps) {
+export function MessageDetail({ message, onToggleFavorite, getTagById, setMessageTag, getContactByNumber }: MessageDetailProps) {
   const [editingTag, setEditingTag] = useState(false)
 
   if (!message) {
@@ -21,6 +22,8 @@ export function MessageDetail({ message, onToggleFavorite, getTagById, setMessag
   }
 
   const tag = getTagById(message.tagId)
+  const contact = getContactByNumber(message.number)
+  const displayName = contact ? `${contact.name} (${message.number})` : message.number
 
   return (
     <div className="message-detail">
@@ -28,7 +31,7 @@ export function MessageDetail({ message, onToggleFavorite, getTagById, setMessag
         <div className="detail-header-info">
           <div className="detail-row">
             <span className="detail-label">FROM</span>
-            <span className="detail-value">{message.number}</span>
+            <span className="detail-value">{displayName}</span>
           </div>
           <div className="detail-row">
             <span className="detail-label">TIME</span>

@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { PagerProvider } from './context/PagerContext'
 import { HomePage } from './pages/HomePage'
 import { SendPage } from './pages/SendPage'
+import { ContactsPage } from './pages/ContactsPage'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/send" element={<SendPage />} />
+            <Route path="/contacts" element={<ContactsPage />} />
           </Routes>
           <footer className="app-footer">
             Mock 数据 · 无后端 · 复古绿屏 UI

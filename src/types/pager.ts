@@ -4,6 +4,12 @@ export interface Tag {
   color: string
 }
 
+export interface Contact {
+  id: string
+  name: string
+  number: string
+}
+
 export interface PagerMessage {
   id: string
   number: string
