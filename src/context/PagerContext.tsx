@@ -16,6 +16,8 @@ const SHOW_FAVORITES_STORAGE_KEY = 'pager_show_favorites_only'
 const TAGS_STORAGE_KEY = 'pager_tags'
 const FILTER_TAG_STORAGE_KEY = 'pager_filter_tag'
 
+export const FILTER_NO_TAG = '__no_tag__'
+
 interface PagerContextValue {
   messages: PagerMessage[]
   favoriteMessages: PagerMessage[]
@@ -183,7 +185,11 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       result = result.filter((msg) => msg.favorite)
     }
     if (filterTagId) {
-      result = result.filter((msg) => msg.tagId === filterTagId)
+      if (filterTagId === FILTER_NO_TAG) {
+        result = result.filter((msg) => msg.tagId === null)
+      } else {
+        result = result.filter((msg) => msg.tagId === filterTagId)
+      }
     }
     if (query) {
       result = result.filter((msg) => msg.number.includes(query))
@@ -234,6 +240,14 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     }
     setMessages((prev) => [newMsg, ...prev])
     setSelectedId(id)
+    setShowFavoritesOnlyState(false)
+    setFilterTagIdState(input.tagId ?? null)
+    try {
+      localStorage.setItem(SHOW_FAVORITES_STORAGE_KEY, 'false')
+      localStorage.setItem(FILTER_TAG_STORAGE_KEY, input.tagId ?? 'null')
+    } catch {
+      // ignore storage errors
+    }
   }, [])
 
   const addFavorite = useCallback((id: string) => {

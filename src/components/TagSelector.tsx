@@ -14,11 +14,20 @@ export function TagSelector({ selectedTagId, onSelect, showAddTag = false }: Tag
   const [newTagName, setNewTagName] = useState('')
 
   const handleAddTag = () => {
-    if (newTagName.trim()) {
-      addTag(newTagName.trim())
+    const trimmed = newTagName.trim()
+    if (!trimmed) return
+    const existing = tags.find((t) => t.name === trimmed)
+    if (existing) {
+      onSelect(existing.id)
       setNewTagName('')
       setShowAddInput(false)
+      return
     }
+    const newId = `tag_${Date.now()}`
+    addTag(trimmed)
+    setTimeout(() => onSelect(newId), 0)
+    setNewTagName('')
+    setShowAddInput(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

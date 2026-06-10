@@ -7,6 +7,7 @@ interface MessageListProps {
   onToggleFavorite: (id: string, currentlyFavorite: boolean) => void
   showFavoritesOnly: boolean
   filterNumber: string
+  filterTagId: string | null
   getTagById: (tagId: string | null) => Tag | undefined
 }
 
@@ -17,12 +18,18 @@ export function MessageList({
   onToggleFavorite,
   showFavoritesOnly,
   filterNumber,
+  filterTagId,
   getTagById,
 }: MessageListProps) {
   if (messages.length === 0) {
     let emptyText = '-- 无匹配记录 --'
-    if (showFavoritesOnly && !filterNumber.trim()) {
+    const hasNumberFilter = !!filterNumber.trim()
+    const hasTagFilter = !!filterTagId
+    const hasAnyFilter = hasNumberFilter || hasTagFilter
+    if (showFavoritesOnly && !hasAnyFilter) {
       emptyText = '-- 暂无收藏消息 --'
+    } else if (hasAnyFilter) {
+      emptyText = '-- 当前筛选无匹配消息 --'
     }
     return <div className="empty-list">{emptyText}</div>
   }
@@ -45,11 +52,12 @@ export function MessageList({
                 <span className="msg-preview">
                   {msg.content.length > 18 ? `${msg.content.slice(0, 18)}…` : msg.content}
                 </span>
-                {tag && (
-                  <span className="msg-tag" style={{ borderColor: tag.color, color: tag.color }}>
-                    {tag.name}
-                  </span>
-                )}
+                <span
+                  className="msg-tag"
+                  style={tag ? { borderColor: tag.color, color: tag.color } : {}}
+                >
+                  {tag ? tag.name : '无标签'}
+                </span>
               </button>
               <button
                 type="button"

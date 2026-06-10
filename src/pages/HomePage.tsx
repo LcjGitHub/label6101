@@ -4,7 +4,7 @@ import { MessageList } from '../components/MessageList'
 import { NavButtons } from '../components/NavButtons'
 import { PagerShell } from '../components/PagerShell'
 import { StatusBar } from '../components/StatusBar'
-import { usePager } from '../context/PagerContext'
+import { FILTER_NO_TAG, usePager } from '../context/PagerContext'
 import type { Tag } from '../types/pager'
 
 export function HomePage() {
@@ -45,6 +45,9 @@ export function HomePage() {
   }
 
   const getTagCount = (tagId: string | null) => {
+    if (tagId === FILTER_NO_TAG) {
+      return messages.filter((m) => m.tagId === null).length
+    }
     return messages.filter((m) => m.tagId === tagId).length
   }
 
@@ -62,6 +65,13 @@ export function HomePage() {
           onClick={() => setFilterTagId(null)}
         >
           全部 ({messages.length})
+        </button>
+        <button
+          type="button"
+          className={`tag-filter-btn ${filterTagId === FILTER_NO_TAG ? 'active' : ''}`}
+          onClick={() => setFilterTagId(FILTER_NO_TAG)}
+        >
+          无标签 ({getTagCount(FILTER_NO_TAG)})
         </button>
         {tags.map((tag: Tag) => (
           <button
@@ -96,6 +106,7 @@ export function HomePage() {
         onToggleFavorite={handleToggleFavorite}
         showFavoritesOnly={showFavoritesOnly}
         filterNumber={filterNumber}
+        filterTagId={filterTagId}
         getTagById={getTagById}
       />
       <MessageDetail
