@@ -32,7 +32,6 @@ export function SendMessageForm() {
       setNumber(contact.number)
     } else {
       setSelectedContactId(null)
-      setNumber('')
     }
   }
 

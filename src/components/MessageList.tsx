@@ -41,7 +41,7 @@ export function MessageList({
       {messages.map((msg) => {
         const tag = getTagById(msg.tagId)
         const contact = getContactByNumber(msg.number)
-        const displayName = contact ? `${contact.name} (${msg.number})` : msg.number
+        const displayName = contact ? contact.name : msg.number
         return (
           <li key={msg.id}>
             <div className="message-item-wrapper">

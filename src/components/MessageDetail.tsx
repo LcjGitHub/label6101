@@ -23,7 +23,7 @@ export function MessageDetail({ message, onToggleFavorite, getTagById, setMessag
 
   const tag = getTagById(message.tagId)
   const contact = getContactByNumber(message.number)
-  const displayName = contact ? `${contact.name} (${message.number})` : message.number
+  const displayName = contact ? contact.name : message.number
 
   return (
     <div className="message-detail">

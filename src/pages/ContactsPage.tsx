@@ -65,6 +65,13 @@ export function ContactsPage() {
     }
 
     if (editing.id) {
+      const existing = contacts.find(
+        (c) => c.number === trimmedNumber && c.id !== editing.id,
+      )
+      if (existing) {
+        setStatus('ERR: 该号码已存在')
+        return
+      }
       updateContact(editing.id, trimmedName, trimmedNumber)
       setStatus('OK: 联系人已更新')
     } else {
