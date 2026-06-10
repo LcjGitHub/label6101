@@ -24,6 +24,13 @@ export function SendMessageForm() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
+  const [minDateTime] = useState(() => {
+    const now = new Date()
+    now.setSeconds(0, 0)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+  })
+
   const [number, setNumber] = useState(() => {
     const editId = searchParams.get('edit')
     if (editId) {
@@ -82,7 +89,18 @@ export function SendMessageForm() {
       const msg = getScheduledMessageById(editId)
       if (msg) return 'scheduled'
     }
+    const modeParam = searchParams.get('mode')
+    if (modeParam === 'scheduled') return 'scheduled'
     return 'instant'
+  })
+
+  const [replyToIdForSchedule, setReplyToIdForSchedule] = useState<string | null>(() => {
+    const editId = searchParams.get('edit')
+    if (editId) {
+      const msg = getScheduledMessageById(editId)
+      if (msg) return msg.replyToId
+    }
+    return null
   })
 
   const [scheduledDateTime, setScheduledDateTime] = useState(() => {
@@ -154,6 +172,7 @@ export function SendMessageForm() {
           content: trimmedContent,
           tagId: selectedTagId,
           scheduledTime,
+          replyToId: replyToIdForSchedule,
         })
         setStatus('OK: 定时消息已更新')
       } else {
@@ -198,6 +217,7 @@ export function SendMessageForm() {
                 setNumber('')
                 setSelectedContactId(null)
                 setSelectedTagId(null)
+                setReplyToIdForSchedule(null)
               }}
             >
               ✕ 取消
@@ -241,6 +261,7 @@ export function SendMessageForm() {
             type="datetime-local"
             className="pager-input full"
             value={scheduledDateTime}
+            min={minDateTime}
             onChange={(e) => setScheduledDateTime(e.target.value)}
           />
           <div className="form-hint">请选择未来的时间</div>

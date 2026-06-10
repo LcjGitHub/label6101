@@ -110,7 +110,7 @@ export function ScheduledPage() {
         <button
           type="button"
           className="pager-btn pager-btn-primary pager-btn-sm"
-          onClick={() => navigate('/send')}
+          onClick={() => navigate('/send?mode=scheduled')}
         >
           + 新建定时
         </button>
@@ -128,7 +128,7 @@ export function ScheduledPage() {
           {filteredMessages.map((msg) => {
             const tag = msg.tagId ? getTagById(msg.tagId) : undefined
             const contact = getContactByNumber(msg.number)
-            const displayName = contact?.name || msg.number
+            const hasContact = !!contact
 
             return (
               <li key={msg.id} className={`sched-item sched-${msg.status}`}>
@@ -139,8 +139,8 @@ export function ScheduledPage() {
                   <span className="sched-time">{msg.scheduledTime}</span>
                 </div>
                 <div className="sched-item-info">
-                  <span className="sched-name">{displayName}</span>
-                  <span className="sched-number">{msg.number}</span>
+                  <span className="sched-name">{contact?.name || msg.number}</span>
+                  {hasContact && <span className="sched-number">{msg.number}</span>}
                 </div>
                 <div className="sched-item-content">{msg.content}</div>
                 {tag && (

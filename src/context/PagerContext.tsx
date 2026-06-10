@@ -404,7 +404,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => prev.map((msg) => ({ ...msg, read: true })))
   }, [])
 
-  const sendMessage = useCallback((input: NewMessageInput) => {
+  const sendMessage = useCallback((input: NewMessageInput): string => {
     const id = String(Date.now()).slice(-6)
     const newMsg: PagerMessage = {
       id,
@@ -427,6 +427,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore storage errors
     }
+    return id
   }, [])
 
   const addScheduledMessage = useCallback(
@@ -437,9 +438,11 @@ export function PagerProvider({ children }: { children: ReactNode }) {
         number: input.number.trim(),
         content: input.content.trim(),
         tagId: input.tagId ?? null,
+        replyToId: input.replyToId ?? null,
         scheduledTime: input.scheduledTime,
         createdAt: formatNow(),
         status: 'pending',
+        sentMessageId: null,
       }
       setScheduledMessages((prev) => [newMsg, ...prev])
     },
@@ -469,32 +472,81 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    const checkScheduledMessages = () => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setScheduledMessages((prev) => {
       const now = formatNow()
-      setScheduledMessages((prev) => {
-        let hasChanges = false
-        const updated = prev.map((msg) => {
-          if (msg.status === 'pending' && msg.scheduledTime <= now) {
-            hasChanges = true
-            sendMessage({
+      const currentMessageIds = new Set(messages.map((m) => m.id))
+      let changed = false
+      const updatedMap = new Map<string, ScheduledMessage>()
+
+      for (const msg of prev) {
+        if (msg.status === 'sent') {
+          if (msg.sentMessageId && !currentMessageIds.has(msg.sentMessageId)) {
+            const sentId = sendMessage({
               number: msg.number,
               content: msg.content,
               tagId: msg.tagId,
-              replyToId: null,
+              replyToId: msg.replyToId,
             })
-            return { ...msg, status: 'sent' as const }
+            changed = true
+            updatedMap.set(msg.id, { ...msg, sentMessageId: sentId })
           }
-          return msg
-        })
-        return hasChanges ? updated : prev
+        } else if (msg.status === 'pending' && msg.scheduledTime <= now) {
+          const sentId = sendMessage({
+            number: msg.number,
+            content: msg.content,
+            tagId: msg.tagId,
+            replyToId: msg.replyToId,
+          })
+          changed = true
+          updatedMap.set(msg.id, { ...msg, status: 'sent', sentMessageId: sentId })
+        }
+      }
+
+      if (!changed) return prev
+      return prev.map((orig) => {
+        const upd = updatedMap.get(orig.id)
+        return upd ?? orig
       })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const timeouts: ReturnType<typeof setTimeout>[] = []
+    const nowMs = Date.now()
+
+    for (const msg of scheduledMessages) {
+      if (msg.status !== 'pending') continue
+      const scheduledMs = new Date(msg.scheduledTime.replace(' ', 'T')).getTime()
+      const delay = scheduledMs - nowMs
+
+      if (delay > 0 && delay <= 2_147_483_647) {
+        const t = setTimeout(() => {
+          setScheduledMessages((prev) => {
+            const target = prev.find((m) => m.id === msg.id)
+            if (!target || target.status !== 'pending') return prev
+            const sentId = sendMessage({
+              number: target.number,
+              content: target.content,
+              tagId: target.tagId,
+              replyToId: target.replyToId,
+            })
+            return prev.map((m) =>
+              m.id === msg.id
+                ? { ...m, status: 'sent' as const, sentMessageId: sentId }
+                : m,
+            )
+          })
+        }, delay)
+        timeouts.push(t)
+      }
     }
 
-    const interval = setInterval(checkScheduledMessages, 10000)
-    checkScheduledMessages()
-
-    return () => clearInterval(interval)
-  }, [sendMessage])
+    return () => {
+      for (const t of timeouts) clearTimeout(t)
+    }
+  }, [scheduledMessages, sendMessage])
 
   const addFavorite = useCallback((id: string) => {
     setMessages((prev) =>

@@ -33,9 +33,11 @@ export interface ScheduledMessage {
   number: string
   content: string
   tagId: string | null
+  replyToId: string | null
   scheduledTime: string
   createdAt: string
   status: 'pending' | 'sent' | 'cancelled'
+  sentMessageId?: string | null
 }
 
 export const DEFAULT_TAGS: Tag[] = [
