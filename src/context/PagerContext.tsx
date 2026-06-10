@@ -12,6 +12,7 @@ import type { Contact, NewMessageInput, PagerMessage, RepeatType, ScheduledMessa
 import { DEFAULT_TAGS } from '../types/pager'
 
 const FAVORITES_STORAGE_KEY = 'pager_favorites'
+const PINS_STORAGE_KEY = 'pager_pins'
 const SHOW_FAVORITES_STORAGE_KEY = 'pager_show_favorites_only'
 const TAGS_STORAGE_KEY = 'pager_tags'
 const FILTER_TAG_STORAGE_KEY = 'pager_filter_tag'
@@ -23,6 +24,7 @@ export const FILTER_NO_TAG = '__no_tag__'
 interface PagerContextValue {
   messages: PagerMessage[]
   favoriteMessages: PagerMessage[]
+  pinnedMessages: PagerMessage[]
   tags: Tag[]
   contacts: Contact[]
   filterNumber: string
@@ -33,12 +35,14 @@ interface PagerContextValue {
   setFilterTagId: (tagId: string | null) => void
   filteredMessages: PagerMessage[]
   favoriteCount: number
+  pinnedCount: number
   unreadCount: number
   markAsRead: (id: string) => void
   markAllAsRead: () => void
   sendMessage: (input: NewMessageInput) => void
   addFavorite: (id: string) => void
   removeFavorite: (id: string) => void
+  togglePin: (id: string) => void
   addTag: (name: string, color?: string) => void
   removeTag: (tagId: string) => void
   setMessageTag: (messageId: string, tagId: string | null) => void
@@ -150,6 +154,42 @@ function saveFavoriteIds(ids: Set<string>) {
   }
 }
 
+interface PinRecord {
+  id: string
+  pinnedAt: string
+}
+
+function loadPinRecords(): Map<string, string> {
+  try {
+    const stored = localStorage.getItem(PINS_STORAGE_KEY)
+    if (stored) {
+      const records = JSON.parse(stored)
+      if (Array.isArray(records)) {
+        const map = new Map<string, string>()
+        for (const r of records) {
+          if (r && typeof r.id === 'string' && typeof r.pinnedAt === 'string') {
+            map.set(r.id, r.pinnedAt)
+          }
+        }
+        return map
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return new Map()
+}
+
+function savePinRecords(records: Map<string, string>) {
+  try {
+    const arr: PinRecord[] = []
+    records.forEach((pinnedAt, id) => arr.push({ id, pinnedAt }))
+    localStorage.setItem(PINS_STORAGE_KEY, JSON.stringify(arr))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 function loadTags(): Tag[] {
   try {
     const stored = localStorage.getItem(TAGS_STORAGE_KEY)
@@ -234,6 +274,7 @@ const TAG_COLORS = [
 
 export function PagerProvider({ children }: { children: ReactNode }) {
   const initialFavoriteIds = useMemo(() => loadFavoriteIds(), [])
+  const initialPinRecords = useMemo(() => loadPinRecords(), [])
   const initialShowFavorites = useMemo(() => {
     try {
       const stored = localStorage.getItem(SHOW_FAVORITES_STORAGE_KEY)
@@ -259,8 +300,10 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       mockMessages.map((msg) => ({
         ...msg,
         favorite: initialFavoriteIds.has(msg.id),
+        pinned: initialPinRecords.has(msg.id),
+        pinnedAt: initialPinRecords.get(msg.id) ?? null,
       })),
-    [initialFavoriteIds],
+    [initialFavoriteIds, initialPinRecords],
   )
 
   const [messages, setMessages] = useState<PagerMessage[]>(initialMessages)
@@ -308,14 +351,41 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     [messages],
   )
 
+  const pinnedMessages = useMemo(
+    () =>
+      messages
+        .filter((msg) => msg.pinned)
+        .sort((a, b) => {
+          if (!a.pinnedAt && !b.pinnedAt) return 0
+          if (!a.pinnedAt) return 1
+          if (!b.pinnedAt) return -1
+          return b.pinnedAt.localeCompare(a.pinnedAt)
+        }),
+    [messages],
+  )
+
   const favoriteIds = useMemo(
     () => new Set(favoriteMessages.map((msg) => msg.id)),
     [favoriteMessages],
   )
 
+  const pinRecords = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const msg of messages) {
+      if (msg.pinned && msg.pinnedAt) {
+        map.set(msg.id, msg.pinnedAt)
+      }
+    }
+    return map
+  }, [messages])
+
   useEffect(() => {
     saveFavoriteIds(favoriteIds)
   }, [favoriteIds])
+
+  useEffect(() => {
+    savePinRecords(pinRecords)
+  }, [pinRecords])
 
   const filteredMessages = useMemo(() => {
     const query = filterNumber.trim()
@@ -333,7 +403,18 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     if (query) {
       result = result.filter((msg) => msg.number.includes(query))
     }
-    return result
+    return [...result].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
+      if (a.pinned && b.pinned) {
+        if (!a.pinnedAt && !b.pinnedAt) return 0
+        if (!a.pinnedAt) return 1
+        if (!b.pinnedAt) return -1
+        const pinCompare = b.pinnedAt.localeCompare(a.pinnedAt)
+        if (pinCompare !== 0) return pinCompare
+      }
+      return b.time.localeCompare(a.time)
+    })
   }, [messages, showFavoritesOnly, filterNumber, filterTagId])
 
   const unreadCount = useMemo(
@@ -344,6 +425,11 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   const favoriteCount = useMemo(
     () => favoriteMessages.length,
     [favoriteMessages],
+  )
+
+  const pinnedCount = useMemo(
+    () => pinnedMessages.length,
+    [pinnedMessages],
   )
 
   const selectedMessage = useMemo(
@@ -477,6 +563,8 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       time: formatNow(),
       read: true,
       favorite: false,
+      pinned: false,
+      pinnedAt: null,
       tagId: input.tagId ?? null,
       replyToId: input.replyToId ?? null,
     }
@@ -703,6 +791,19 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     [showFavoritesOnly, selectedId],
   )
 
+  const togglePin = useCallback((id: string) => {
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== id) return msg
+        if (msg.pinned) {
+          return { ...msg, pinned: false, pinnedAt: null }
+        } else {
+          return { ...msg, pinned: true, pinnedAt: formatNow() }
+        }
+      }),
+    )
+  }, [])
+
   const addTag = useCallback((name: string, color?: string) => {
     const trimmedName = name.trim()
     if (!trimmedName) return
@@ -734,6 +835,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     () => ({
       messages,
       favoriteMessages,
+      pinnedMessages,
       tags,
       contacts,
       filterNumber,
@@ -744,12 +846,14 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       setFilterTagId,
       filteredMessages,
       favoriteCount,
+      pinnedCount,
       unreadCount,
       markAsRead,
       markAllAsRead,
       sendMessage,
       addFavorite,
       removeFavorite,
+      togglePin,
       addTag,
       removeTag,
       setMessageTag,
@@ -779,6 +883,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     [
       messages,
       favoriteMessages,
+      pinnedMessages,
       tags,
       contacts,
       scheduledMessages,
@@ -789,12 +894,14 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       setFilterTagId,
       filteredMessages,
       favoriteCount,
+      pinnedCount,
       unreadCount,
       markAsRead,
       markAllAsRead,
       sendMessage,
       addFavorite,
       removeFavorite,
+      togglePin,
       addTag,
       removeTag,
       setMessageTag,

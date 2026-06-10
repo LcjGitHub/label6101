@@ -6,6 +6,7 @@ import { TagSelector } from './TagSelector'
 interface MessageDetailProps {
   message: PagerMessage | null
   onToggleFavorite: (id: string, currentlyFavorite: boolean) => void
+  onTogglePin: (id: string) => void
   getTagById: (tagId: string | null) => Tag | undefined
   setMessageTag: (messageId: string, tagId: string | null) => void
   getContactByNumber: (number: string) => Contact | undefined
@@ -19,6 +20,7 @@ interface MessageDetailProps {
 export function MessageDetail({
   message,
   onToggleFavorite,
+  onTogglePin,
   getTagById,
   setMessageTag,
   getContactByNumber,
@@ -77,7 +79,10 @@ export function MessageDetail({
           )}
           <div className="detail-row">
             <span className="detail-label">FROM</span>
-            <span className="detail-value">{displayName}</span>
+            <span className="detail-value">
+              {message.pinned && <span className="detail-pin-label" title="已置顶">📌 </span>}
+              {displayName}
+            </span>
           </div>
           <div className="detail-row">
             <span className="detail-label">TIME</span>
@@ -85,7 +90,10 @@ export function MessageDetail({
           </div>
           <div className="detail-row">
             <span className="detail-label">STAT</span>
-            <span className="detail-value">{message.read ? '已读' : '未读'}</span>
+            <span className="detail-value">
+              {message.read ? '已读' : '未读'}
+              {message.pinned && <span className="detail-pin-status"> · 置顶</span>}
+            </span>
           </div>
           <div className="detail-row">
             <span className="detail-label">TAG</span>
@@ -129,6 +137,14 @@ export function MessageDetail({
           </button>
           <button
             type="button"
+            className={`detail-pin-btn ${message.pinned ? 'pinned' : ''}`}
+            onClick={() => onTogglePin(message.id)}
+            title={message.pinned ? '取消置顶' : '置顶'}
+          >
+            {message.pinned ? '📌' : '📍'}
+          </button>
+          <button
+            type="button"
             className={`detail-fav-btn ${message.favorite ? 'favorited' : ''}`}
             onClick={() => onToggleFavorite(message.id, message.favorite)}
             title={message.favorite ? '取消收藏' : '收藏'}
@@ -157,6 +173,9 @@ export function MessageDetail({
                 >
                   <div className="reply-thread-header">
                     <span className="reply-thread-name">
+                      {threadMsg.pinned && (
+                        <span className="reply-thread-pin-icon" title="置顶">📌</span>
+                      )}
                       {threadRepliedTo && (
                         <span className="reply-thread-reply-icon" title="回复">↩</span>
                       )}

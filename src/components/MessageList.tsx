@@ -5,6 +5,7 @@ interface MessageListProps {
   selectedId: string | null
   onSelect: (id: string) => void
   onToggleFavorite: (id: string, currentlyFavorite: boolean) => void
+  onTogglePin: (id: string) => void
   showFavoritesOnly: boolean
   filterNumber: string
   filterTagId: string | null
@@ -18,6 +19,7 @@ export function MessageList({
   selectedId,
   onSelect,
   onToggleFavorite,
+  onTogglePin,
   showFavoritesOnly,
   filterNumber,
   filterTagId,
@@ -53,11 +55,12 @@ export function MessageList({
             <div className="message-item-wrapper">
               <button
                 type="button"
-                className={`message-item ${selectedId === msg.id ? 'selected' : ''} ${msg.read ? '' : 'unread'} ${msg.favorite ? 'is-favorite' : ''} ${isReply ? 'is-reply' : ''}`}
+                className={`message-item ${selectedId === msg.id ? 'selected' : ''} ${msg.read ? '' : 'unread'} ${msg.favorite ? 'is-favorite' : ''} ${msg.pinned ? 'is-pinned' : ''} ${isReply ? 'is-reply' : ''}`}
                 onClick={() => onSelect(msg.id)}
               >
                 <span className="msg-indicator">{msg.read ? ' ' : '▶'}</span>
                 <span className="msg-number">
+                  {msg.pinned && <span className="msg-pin-icon" title="置顶">📌</span>}
                   {isReply && <span className="msg-reply-icon" title="回复">↩</span>}
                   {displayName}
                 </span>
@@ -72,6 +75,17 @@ export function MessageList({
                   {tag ? tag.name : '无标签'}
                   {hasThread && <span className="msg-reply-count"> · {threadCount}条</span>}
                 </span>
+              </button>
+              <button
+                type="button"
+                className={`pin-toggle ${msg.pinned ? 'pinned' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onTogglePin(msg.id)
+                }}
+                title={msg.pinned ? '取消置顶' : '置顶'}
+              >
+                {msg.pinned ? '📌' : '📍'}
               </button>
               <button
                 type="button"

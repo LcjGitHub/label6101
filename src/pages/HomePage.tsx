@@ -22,8 +22,10 @@ export function HomePage() {
     showFavoritesOnly,
     setShowFavoritesOnly,
     favoriteCount,
+    pinnedCount,
     addFavorite,
     removeFavorite,
+    togglePin,
     tags,
     filterTagId,
     setFilterTagId,
@@ -100,6 +102,9 @@ export function HomePage() {
           <span className="fav-icon">{showFavoritesOnly ? '★' : '☆'}</span>
           收藏 ({favoriteCount})
         </button>
+        <span className="pinned-count-hint">
+          📌 置顶 ({pinnedCount})
+        </span>
         <span className="action-hint">
           {showFavoritesOnly ? '点击显示全部消息' : '点击只显示收藏消息'}
         </span>
@@ -109,6 +114,7 @@ export function HomePage() {
         selectedId={selectedId}
         onSelect={handleSelect}
         onToggleFavorite={handleToggleFavorite}
+        onTogglePin={togglePin}
         showFavoritesOnly={showFavoritesOnly}
         filterNumber={filterNumber}
         filterTagId={filterTagId}
@@ -119,6 +125,7 @@ export function HomePage() {
       <MessageDetail
         message={selectedMessage}
         onToggleFavorite={handleToggleFavorite}
+        onTogglePin={togglePin}
         getTagById={getTagById}
         setMessageTag={setMessageTag}
         getContactByNumber={getContactByNumber}

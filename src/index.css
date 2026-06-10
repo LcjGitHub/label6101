@@ -1468,3 +1468,98 @@ body {
   padding: 5px 6px;
 }
 
+/* ── Pin Feature ── */
+
+.pinned-count-hint {
+  font-size: 0.55rem;
+  color: var(--green);
+  margin-right: auto;
+  margin-left: 8px;
+  text-shadow: 0 0 3px var(--green-glow);
+}
+
+.pin-toggle {
+  width: 28px;
+  min-width: 28px;
+  background: transparent;
+  border: 1px solid var(--text-dim);
+  border-left: none;
+  color: var(--green-muted);
+  font-family: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pin-toggle:hover {
+  background: rgba(51, 255, 102, 0.08);
+  color: var(--green);
+}
+
+.pin-toggle.pinned {
+  color: var(--green);
+  background: rgba(51, 255, 102, 0.12);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.message-item.is-pinned {
+  border-left: 3px solid var(--green);
+  background: rgba(51, 255, 102, 0.04);
+}
+
+.message-item.is-pinned.selected {
+  background: rgba(51, 255, 102, 0.16);
+}
+
+.msg-pin-icon {
+  font-size: 0.55rem;
+  margin-right: 3px;
+  filter: drop-shadow(0 0 2px var(--green-glow));
+}
+
+.detail-pin-btn {
+  background: rgba(51, 255, 102, 0.08);
+  border: 1px solid var(--green-muted);
+  color: var(--green-muted);
+  font-family: inherit;
+  font-size: 0.6rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.detail-pin-btn:hover {
+  background: rgba(51, 255, 102, 0.15);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.detail-pin-btn.pinned {
+  color: var(--green);
+  background: rgba(51, 255, 102, 0.18);
+  border-color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.detail-pin-label {
+  margin-right: 2px;
+  filter: drop-shadow(0 0 2px var(--green-glow));
+}
+
+.detail-pin-status {
+  color: var(--green);
+  font-weight: bold;
+  text-shadow: 0 0 3px var(--green-glow);
+}
+
+.reply-thread-pin-icon {
+  font-size: 0.5rem;
+  margin-right: 2px;
+  filter: drop-shadow(0 0 2px var(--green-glow));
+}
+

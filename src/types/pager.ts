@@ -17,6 +17,8 @@ export interface PagerMessage {
   content: string
   read: boolean
   favorite: boolean
+  pinned: boolean
+  pinnedAt: string | null
   tagId: string | null
   replyToId: string | null
 }
