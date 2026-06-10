@@ -4,6 +4,7 @@ export interface PagerMessage {
   time: string
   content: string
   read: boolean
+  favorite: boolean
 }
 
 export interface NewMessageInput {

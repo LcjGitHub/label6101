@@ -18,6 +18,10 @@ export function HomePage() {
     selectedMessage,
     markAsRead,
     markAllAsRead,
+    showFavoritesOnly,
+    setShowFavoritesOnly,
+    favoriteCount,
+    toggleFavorite,
   } = usePager()
 
   const handleSelect = (id: string) => {
@@ -32,12 +36,29 @@ export function HomePage() {
         totalCount={filteredMessages.length}
       />
       <FilterBar value={filterNumber} onChange={setFilterNumber} />
+      <div className="favorites-filter-row">
+        <button
+          type="button"
+          className={`pager-btn pager-btn-sm ${showFavoritesOnly ? 'active' : ''}`}
+          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        >
+          <span className="fav-icon">{showFavoritesOnly ? '★' : '☆'}</span>
+          收藏 ({favoriteCount})
+        </button>
+        <span className="action-hint">
+          {showFavoritesOnly ? '显示收藏消息' : '显示全部消息'}
+        </span>
+      </div>
       <MessageList
         messages={filteredMessages}
         selectedId={selectedId}
         onSelect={handleSelect}
+        onToggleFavorite={toggleFavorite}
       />
-      <MessageDetail message={selectedMessage} />
+      <MessageDetail
+        message={selectedMessage}
+        onToggleFavorite={toggleFavorite}
+      />
       <div className="action-row">
         <button
           type="button"

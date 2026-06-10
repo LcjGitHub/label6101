@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -9,15 +10,22 @@ import {
 import { mockMessages } from '../data/mockMessages'
 import type { NewMessageInput, PagerMessage } from '../types/pager'
 
+const FAVORITES_STORAGE_KEY = 'pager_favorites'
+const SHOW_FAVORITES_STORAGE_KEY = 'pager_show_favorites_only'
+
 interface PagerContextValue {
   messages: PagerMessage[]
   filterNumber: string
   setFilterNumber: (value: string) => void
+  showFavoritesOnly: boolean
+  setShowFavoritesOnly: (value: boolean) => void
   filteredMessages: PagerMessage[]
+  favoriteCount: number
   unreadCount: number
   markAsRead: (id: string) => void
   markAllAsRead: () => void
   sendMessage: (input: NewMessageInput) => void
+  toggleFavorite: (id: string) => void
   selectedId: string | null
   setSelectedId: (id: string | null) => void
   selectedMessage: PagerMessage | null
@@ -31,19 +39,89 @@ function formatNow(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
 }
 
+function loadFavoriteIds(): Set<string> {
+  try {
+    const stored = localStorage.getItem(FAVORITES_STORAGE_KEY)
+    if (stored) {
+      const ids = JSON.parse(stored)
+      if (Array.isArray(ids)) return new Set(ids)
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return new Set()
+}
+
+function saveFavoriteIds(ids: Set<string>) {
+  try {
+    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...ids]))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export function PagerProvider({ children }: { children: ReactNode }) {
-  const [messages, setMessages] = useState<PagerMessage[]>(mockMessages)
+  const initialFavoriteIds = useMemo(() => loadFavoriteIds(), [])
+  const initialShowFavorites = useMemo(() => {
+    try {
+      const stored = localStorage.getItem(SHOW_FAVORITES_STORAGE_KEY)
+      return stored === 'true'
+    } catch {
+      return false
+    }
+  }, [])
+
+  const initialMessages = useMemo(
+    () =>
+      mockMessages.map((msg) => ({
+        ...msg,
+        favorite: initialFavoriteIds.has(msg.id),
+      })),
+    [initialFavoriteIds],
+  )
+
+  const [messages, setMessages] = useState<PagerMessage[]>(initialMessages)
   const [filterNumber, setFilterNumber] = useState('')
+  const [showFavoritesOnly, setShowFavoritesOnlyState] = useState(initialShowFavorites)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const setShowFavoritesOnly = useCallback((value: boolean) => {
+    setShowFavoritesOnlyState(value)
+    try {
+      localStorage.setItem(SHOW_FAVORITES_STORAGE_KEY, String(value))
+    } catch {
+      // ignore storage errors
+    }
+  }, [])
+
+  const favoriteIds = useMemo(
+    () => new Set(messages.filter((msg) => msg.favorite).map((msg) => msg.id)),
+    [messages],
+  )
+
+  useEffect(() => {
+    saveFavoriteIds(favoriteIds)
+  }, [favoriteIds])
 
   const filteredMessages = useMemo(() => {
     const query = filterNumber.trim()
-    if (!query) return messages
-    return messages.filter((msg) => msg.number.includes(query))
-  }, [messages, filterNumber])
+    let result = messages
+    if (showFavoritesOnly) {
+      result = result.filter((msg) => msg.favorite)
+    }
+    if (query) {
+      result = result.filter((msg) => msg.number.includes(query))
+    }
+    return result
+  }, [messages, showFavoritesOnly, filterNumber])
 
   const unreadCount = useMemo(
     () => messages.filter((msg) => !msg.read).length,
+    [messages],
+  )
+
+  const favoriteCount = useMemo(
+    () => messages.filter((msg) => msg.favorite).length,
     [messages],
   )
 
@@ -70,9 +148,18 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       content: input.content.trim(),
       time: formatNow(),
       read: true,
+      favorite: false,
     }
     setMessages((prev) => [newMsg, ...prev])
     setSelectedId(id)
+  }, [])
+
+  const toggleFavorite = useCallback((id: string) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === id ? { ...msg, favorite: !msg.favorite } : msg,
+      ),
+    )
   }, [])
 
   const value = useMemo(
@@ -80,11 +167,15 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       messages,
       filterNumber,
       setFilterNumber,
+      showFavoritesOnly,
+      setShowFavoritesOnly,
       filteredMessages,
+      favoriteCount,
       unreadCount,
       markAsRead,
       markAllAsRead,
       sendMessage,
+      toggleFavorite,
       selectedId,
       setSelectedId,
       selectedMessage,
@@ -92,11 +183,15 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     [
       messages,
       filterNumber,
+      showFavoritesOnly,
+      setShowFavoritesOnly,
       filteredMessages,
+      favoriteCount,
       unreadCount,
       markAsRead,
       markAllAsRead,
       sendMessage,
+      toggleFavorite,
       selectedId,
       selectedMessage,
     ],

@@ -545,3 +545,94 @@ body {
 .form-actions .pager-btn {
   flex: 1;
 }
+
+/* ── Favorites ── */
+
+.favorites-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fav-icon {
+  margin-right: 2px;
+}
+
+.message-item-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.message-item-wrapper .message-item {
+  flex: 1;
+}
+
+.fav-toggle {
+  width: 28px;
+  min-width: 28px;
+  background: transparent;
+  border: 1px solid var(--text-dim);
+  border-left: none;
+  color: var(--green-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.fav-toggle:hover {
+  background: rgba(51, 255, 102, 0.08);
+  color: var(--green);
+}
+
+.fav-toggle.favorited {
+  color: var(--green);
+  background: rgba(51, 255, 102, 0.1);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.message-item.is-favorite {
+  border-left: 2px solid var(--green);
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.detail-header-info {
+  flex: 1;
+}
+
+.detail-fav-btn {
+  background: rgba(51, 255, 102, 0.08);
+  border: 1px solid var(--green-muted);
+  color: var(--green-muted);
+  font-family: inherit;
+  font-size: 0.6rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.detail-fav-btn:hover {
+  background: rgba(51, 255, 102, 0.15);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.detail-fav-btn.favorited {
+  color: var(--green);
+  background: rgba(51, 255, 102, 0.18);
+  border-color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
