@@ -29,6 +29,52 @@ function renderHighlighted(segments: (string | { match: string })[]) {
   })
 }
 
+function buildPreviewWithKeyword(content: string, query: string, maxLength = 18): string {
+  const trimmedQuery = query.trim()
+  if (!trimmedQuery) {
+    return content.length > maxLength ? `${content.slice(0, maxLength)}…` : content
+  }
+
+  if (content.length <= maxLength) {
+    return content
+  }
+
+  const lowerContent = content.toLowerCase()
+  const lowerQuery = trimmedQuery.toLowerCase()
+  const keywordIndex = lowerContent.indexOf(lowerQuery)
+
+  if (keywordIndex === -1) {
+    return `${content.slice(0, maxLength)}…`
+  }
+
+  const keywordLength = trimmedQuery.length
+  const keywordEnd = keywordIndex + keywordLength
+  const contextChars = Math.floor((maxLength - keywordLength) / 2)
+
+  if (keywordLength >= maxLength) {
+    return `${content.slice(keywordIndex, keywordIndex + maxLength - 1)}…`
+  }
+
+  let start = Math.max(0, keywordIndex - contextChars)
+  let end = start + maxLength
+
+  if (end > content.length) {
+    end = content.length
+    start = Math.max(0, end - maxLength)
+  }
+
+  if (keywordEnd > end) {
+    end = Math.min(content.length, keywordEnd + contextChars)
+    start = Math.max(0, end - maxLength)
+  }
+
+  const prefix = start > 0 ? '…' : ''
+  const suffix = end < content.length ? '…' : ''
+  const middle = content.slice(start, end > content.length ? content.length : Math.min(end, start + maxLength - (prefix ? 1 : 0) - (suffix ? 1 : 0)))
+
+  return `${prefix}${middle}${suffix}`
+}
+
 export function MessageList({
   messages,
   selectedId,
@@ -67,7 +113,7 @@ export function MessageList({
         const threadCount = thread.length - 1
         const hasThread = threadCount > 0
         const isReply = !!msg.replyToId
-        const previewText = msg.content.length > 18 ? `${msg.content.slice(0, 18)}…` : msg.content
+        const previewText = buildPreviewWithKeyword(msg.content, searchQuery, 18)
         const highlightedName = highlightText(displayName, searchQuery)
         const highlightedPreview = highlightText(previewText, searchQuery)
         return (

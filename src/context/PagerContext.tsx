@@ -507,10 +507,18 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       result = result.filter((msg) => msg.number.includes(numberQuery))
     }
     if (contentQuery) {
-      result = result.filter((msg) =>
-        msg.content.toLowerCase().includes(contentQuery) ||
-        msg.number.toLowerCase().includes(contentQuery),
-      )
+      const numberToName = new Map<string, string>()
+      for (const c of contacts) {
+        numberToName.set(c.number, c.name)
+      }
+      result = result.filter((msg) => {
+        const contactName = numberToName.get(msg.number)
+        return (
+          msg.content.toLowerCase().includes(contentQuery) ||
+          msg.number.toLowerCase().includes(contentQuery) ||
+          (contactName && contactName.toLowerCase().includes(contentQuery))
+        )
+      })
     }
     return [...result].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1
@@ -524,7 +532,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       }
       return b.time.localeCompare(a.time)
     })
-  }, [messages, showFavoritesOnly, filterNumber, filterTagId, searchQuery])
+  }, [messages, showFavoritesOnly, filterNumber, filterTagId, searchQuery, contacts])
 
   const unreadCount = useMemo(
     () => messages.filter((msg) => !msg.read).length,

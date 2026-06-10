@@ -38,7 +38,7 @@ export function SearchInput({
           onClick={handleClear}
           title="清除搜索"
         >
-          CLR
+          清除
         </button>
       )}
     </div>

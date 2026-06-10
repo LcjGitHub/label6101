@@ -21,8 +21,9 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
           type="button"
           className="pager-btn pager-btn-sm"
           onClick={() => onChange('')}
+          title="清除号码筛选"
         >
-          CLR
+          清除
         </button>
       )}
     </div>

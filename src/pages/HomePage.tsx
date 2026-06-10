@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { FilterBar } from '../components/FilterBar'
 import { MessageDetail } from '../components/MessageDetail'
 import { MessageList } from '../components/MessageList'
@@ -60,6 +61,14 @@ export function HomePage() {
     }
     return messages.filter((m) => m.tagId === tagId).length
   }
+
+  useEffect(() => {
+    if (filteredMessages.length === 0) {
+      setSelectedId(null)
+    } else if (selectedId && !filteredMessages.some((m) => m.id === selectedId)) {
+      setSelectedId(null)
+    }
+  }, [filteredMessages, selectedId, setSelectedId])
 
   const hasAnyFilter =
     !!filterNumber.trim() ||
