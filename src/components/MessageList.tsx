@@ -4,7 +4,9 @@ interface MessageListProps {
   messages: PagerMessage[]
   selectedId: string | null
   onSelect: (id: string) => void
-  onToggleFavorite: (id: string) => void
+  onToggleFavorite: (id: string, currentlyFavorite: boolean) => void
+  showFavoritesOnly: boolean
+  filterNumber: string
 }
 
 export function MessageList({
@@ -12,9 +14,15 @@ export function MessageList({
   selectedId,
   onSelect,
   onToggleFavorite,
+  showFavoritesOnly,
+  filterNumber,
 }: MessageListProps) {
   if (messages.length === 0) {
-    return <div className="empty-list">-- 无匹配记录 --</div>
+    let emptyText = '-- 无匹配记录 --'
+    if (showFavoritesOnly && !filterNumber.trim()) {
+      emptyText = '-- 暂无收藏消息 --'
+    }
+    return <div className="empty-list">{emptyText}</div>
   }
 
   return (
@@ -39,7 +47,7 @@ export function MessageList({
               className={`fav-toggle ${msg.favorite ? 'favorited' : ''}`}
               onClick={(e) => {
                 e.stopPropagation()
-                onToggleFavorite(msg.id)
+                onToggleFavorite(msg.id, msg.favorite)
               }}
               title={msg.favorite ? '取消收藏' : '收藏'}
             >

@@ -2,7 +2,7 @@ import type { PagerMessage } from '../types/pager'
 
 interface MessageDetailProps {
   message: PagerMessage | null
-  onToggleFavorite: (id: string) => void
+  onToggleFavorite: (id: string, currentlyFavorite: boolean) => void
 }
 
 export function MessageDetail({ message, onToggleFavorite }: MessageDetailProps) {
@@ -34,7 +34,7 @@ export function MessageDetail({ message, onToggleFavorite }: MessageDetailProps)
         <button
           type="button"
           className={`detail-fav-btn ${message.favorite ? 'favorited' : ''}`}
-          onClick={() => onToggleFavorite(message.id)}
+          onClick={() => onToggleFavorite(message.id, message.favorite)}
           title={message.favorite ? '取消收藏' : '收藏'}
         >
           {message.favorite ? '★ 已收藏' : '☆ 收藏'}
