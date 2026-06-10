@@ -1780,6 +1780,11 @@ body {
   opacity: 0.85;
 }
 
+.contact-group-tag.no-group {
+  opacity: 0.5;
+  font-style: italic;
+}
+
 .contact-checkbox {
   width: 14px;
   height: 14px;

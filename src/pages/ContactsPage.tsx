@@ -18,6 +18,8 @@ interface EditableContact {
 
 const EMPTY_CONTACT: EditableContact = { id: null, name: '', number: '', groupId: null }
 
+const NO_GROUP_COLOR = '#888888'
+
 export function ContactsPage() {
   const navigate = useNavigate()
   const {
@@ -31,16 +33,19 @@ export function ContactsPage() {
     unreadCount,
     messages,
     getGroupById,
+    getContactsByGroup,
+    filterGroupId,
+    setFilterGroupId,
   } = usePager()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterGroupId, setFilterGroupId] = useState<string | null>(null)
   const [editing, setEditing] = useState<EditableContact>(EMPTY_CONTACT)
   const [showForm, setShowForm] = useState(false)
   const [status, setStatus] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [batchMode, setBatchMode] = useState(false)
   const [showBatchGroupSelect, setShowBatchGroupSelect] = useState(false)
+  const [showSelectByGroup, setShowSelectByGroup] = useState(false)
 
   const filteredContacts = useMemo(
     () => searchContacts(searchQuery, filterGroupId),
@@ -52,7 +57,10 @@ export function ContactsPage() {
   }, [filteredContacts, selectedIds])
 
   const startAdd = () => {
-    setEditing({ ...EMPTY_CONTACT, groupId: filterGroupId && filterGroupId !== FILTER_NO_GROUP ? filterGroupId : null })
+    setEditing({
+      ...EMPTY_CONTACT,
+      groupId: filterGroupId && filterGroupId !== FILTER_NO_GROUP ? filterGroupId : null,
+    })
     setShowForm(true)
     setStatus('')
   }
@@ -143,6 +151,18 @@ export function ContactsPage() {
     }
   }
 
+  const handleSelectByGroup = (groupId: string | null) => {
+    const targetGroupId = groupId === FILTER_NO_GROUP ? null : groupId
+    const groupContacts = getContactsByGroup(targetGroupId ?? FILTER_NO_GROUP)
+    const groupContactIds = new Set(groupContacts.map((c) => c.id))
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      groupContactIds.forEach((id) => next.add(id))
+      return next
+    })
+    setShowSelectByGroup(false)
+  }
+
   const handleBatchDelete = () => {
     if (selectedIds.size === 0) return
     const ok = window.confirm(`确定删除选中的 ${selectedIds.size} 位联系人？`)
@@ -159,12 +179,13 @@ export function ContactsPage() {
     setContactGroupBatch([...selectedIds], targetGroupId)
     setSelectedIds(new Set())
     setShowBatchGroupSelect(false)
-    setBatchMode(false)
   }
 
   const clearSelection = () => {
     setSelectedIds(new Set())
     setBatchMode(false)
+    setShowSelectByGroup(false)
+    setShowBatchGroupSelect(false)
   }
 
   return (
@@ -234,6 +255,13 @@ export function ContactsPage() {
               <button
                 type="button"
                 className="pager-btn pager-btn-sm"
+                onClick={() => setShowSelectByGroup(!showSelectByGroup)}
+              >
+                按分组选中
+              </button>
+              <button
+                type="button"
+                className="pager-btn pager-btn-sm"
                 onClick={() => setShowBatchGroupSelect(!showBatchGroupSelect)}
                 disabled={selectedIds.size === 0}
               >
@@ -252,17 +280,29 @@ export function ContactsPage() {
                 className="pager-btn pager-btn-sm"
                 onClick={clearSelection}
               >
-                清除选择
+                清除
               </button>
+            </div>
+          )}
+
+          {batchMode && showSelectByGroup && (
+            <div className="batch-group-select">
+              <div className="form-label">选择分组，将该分组下所有联系人加入选中</div>
+              <GroupSelector
+                selectedGroupId={null}
+                onSelect={handleSelectByGroup}
+                showGroupCounts={true}
+              />
             </div>
           )}
 
           {batchMode && showBatchGroupSelect && (
             <div className="batch-group-select">
-              <div className="form-label">选择目标分组</div>
+              <div className="form-label">选择目标分组，将选中联系人移动到该分组</div>
               <GroupSelector
                 selectedGroupId={null}
                 onSelect={handleBatchMoveGroup}
+                showAllOption={false}
                 showGroupCounts={false}
               />
             </div>
@@ -293,7 +333,7 @@ export function ContactsPage() {
                     <div className="contact-list-info">
                       <div className="contact-list-header">
                         <span className="contact-list-name">{contact.name}</span>
-                        {group && (
+                        {group ? (
                           <span
                             className="contact-group-tag"
                             style={{ borderColor: group.color, color: group.color }}
@@ -303,6 +343,17 @@ export function ContactsPage() {
                               style={{ background: group.color }}
                             />
                             {group.name}
+                          </span>
+                        ) : (
+                          <span
+                            className="contact-group-tag no-group"
+                            style={{ borderColor: NO_GROUP_COLOR, color: NO_GROUP_COLOR }}
+                          >
+                            <span
+                              className="group-dot"
+                              style={{ background: NO_GROUP_COLOR }}
+                            />
+                            未分组
                           </span>
                         )}
                       </div>

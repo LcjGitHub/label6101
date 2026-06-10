@@ -230,7 +230,12 @@ function loadContacts(): Contact[] {
     const stored = localStorage.getItem(CONTACTS_STORAGE_KEY)
     if (stored) {
       const contacts = JSON.parse(stored)
-      if (Array.isArray(contacts)) return contacts
+      if (Array.isArray(contacts)) {
+        return contacts.map((c) => ({
+          ...c,
+          groupId: c.groupId ?? null,
+        }))
+      }
     }
   } catch {
     // ignore parse errors
