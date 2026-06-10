@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { mockMessages } from '../data/mockMessages'
-import type { Contact, NewMessageInput, PagerMessage, Tag } from '../types/pager'
+import type { Contact, NewMessageInput, PagerMessage, ScheduledMessage, Tag } from '../types/pager'
 import { DEFAULT_TAGS } from '../types/pager'
 
 const FAVORITES_STORAGE_KEY = 'pager_favorites'
@@ -16,6 +16,7 @@ const SHOW_FAVORITES_STORAGE_KEY = 'pager_show_favorites_only'
 const TAGS_STORAGE_KEY = 'pager_tags'
 const FILTER_TAG_STORAGE_KEY = 'pager_filter_tag'
 const CONTACTS_STORAGE_KEY = 'pager_contacts'
+const SCHEDULED_MESSAGES_STORAGE_KEY = 'pager_scheduled_messages'
 
 export const FILTER_NO_TAG = '__no_tag__'
 
@@ -57,6 +58,11 @@ interface PagerContextValue {
   getRepliesForMessage: (messageId: string) => PagerMessage[]
   getMessageById: (id: string | null) => PagerMessage | null
   getThreadForMessage: (messageId: string) => PagerMessage[]
+  scheduledMessages: ScheduledMessage[]
+  addScheduledMessage: (input: NewMessageInput & { scheduledTime: string }) => void
+  cancelScheduledMessage: (id: string) => void
+  updateScheduledMessage: (id: string, updates: Partial<ScheduledMessage>) => void
+  getScheduledMessageById: (id: string) => ScheduledMessage | undefined
 }
 
 const PagerContext = createContext<PagerContextValue | null>(null)
@@ -130,6 +136,27 @@ function saveContacts(contacts: Contact[]) {
   }
 }
 
+function loadScheduledMessages(): ScheduledMessage[] {
+  try {
+    const stored = localStorage.getItem(SCHEDULED_MESSAGES_STORAGE_KEY)
+    if (stored) {
+      const msgs = JSON.parse(stored)
+      if (Array.isArray(msgs)) return msgs
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return []
+}
+
+function saveScheduledMessages(messages: ScheduledMessage[]) {
+  try {
+    localStorage.setItem(SCHEDULED_MESSAGES_STORAGE_KEY, JSON.stringify(messages))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 const TAG_COLORS = [
   '#33ff66',
   '#ff6699',
@@ -153,6 +180,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   }, [])
   const initialTags = useMemo(() => loadTags(), [])
   const initialContacts = useMemo(() => loadContacts(), [])
+  const initialScheduledMessages = useMemo(() => loadScheduledMessages(), [])
   const initialFilterTagId = useMemo(() => {
     try {
       const stored = localStorage.getItem(FILTER_TAG_STORAGE_KEY)
@@ -174,6 +202,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<PagerMessage[]>(initialMessages)
   const [tags, setTags] = useState<Tag[]>(initialTags)
   const [contacts, setContacts] = useState<Contact[]>(initialContacts)
+  const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>(initialScheduledMessages)
   const [filterNumber, setFilterNumber] = useState('')
   const [showFavoritesOnly, setShowFavoritesOnlyState] = useState(initialShowFavorites)
   const [filterTagId, setFilterTagIdState] = useState<string | null>(initialFilterTagId)
@@ -205,6 +234,10 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveContacts(contacts)
   }, [contacts])
+
+  useEffect(() => {
+    saveScheduledMessages(scheduledMessages)
+  }, [scheduledMessages])
 
   const favoriteMessages = useMemo(
     () => messages.filter((msg) => msg.favorite),
@@ -396,6 +429,73 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const addScheduledMessage = useCallback(
+    (input: NewMessageInput & { scheduledTime: string }) => {
+      const id = `sched_${Date.now()}`
+      const newMsg: ScheduledMessage = {
+        id,
+        number: input.number.trim(),
+        content: input.content.trim(),
+        tagId: input.tagId ?? null,
+        scheduledTime: input.scheduledTime,
+        createdAt: formatNow(),
+        status: 'pending',
+      }
+      setScheduledMessages((prev) => [newMsg, ...prev])
+    },
+    [],
+  )
+
+  const cancelScheduledMessage = useCallback((id: string) => {
+    setScheduledMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === id ? { ...msg, status: 'cancelled' } : msg,
+      ),
+    )
+  }, [])
+
+  const updateScheduledMessage = useCallback(
+    (id: string, updates: Partial<ScheduledMessage>) => {
+      setScheduledMessages((prev) =>
+        prev.map((msg) => (msg.id === id ? { ...msg, ...updates } : msg)),
+      )
+    },
+    [],
+  )
+
+  const getScheduledMessageById = useCallback(
+    (id: string) => scheduledMessages.find((msg) => msg.id === id),
+    [scheduledMessages],
+  )
+
+  useEffect(() => {
+    const checkScheduledMessages = () => {
+      const now = formatNow()
+      setScheduledMessages((prev) => {
+        let hasChanges = false
+        const updated = prev.map((msg) => {
+          if (msg.status === 'pending' && msg.scheduledTime <= now) {
+            hasChanges = true
+            sendMessage({
+              number: msg.number,
+              content: msg.content,
+              tagId: msg.tagId,
+              replyToId: null,
+            })
+            return { ...msg, status: 'sent' as const }
+          }
+          return msg
+        })
+        return hasChanges ? updated : prev
+      })
+    }
+
+    const interval = setInterval(checkScheduledMessages, 10000)
+    checkScheduledMessages()
+
+    return () => clearInterval(interval)
+  }, [sendMessage])
+
   const addFavorite = useCallback((id: string) => {
     setMessages((prev) =>
       prev.map((msg) =>
@@ -484,12 +584,18 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       getRepliesForMessage,
       getMessageById,
       getThreadForMessage,
+      scheduledMessages,
+      addScheduledMessage,
+      cancelScheduledMessage,
+      updateScheduledMessage,
+      getScheduledMessageById,
     }),
     [
       messages,
       favoriteMessages,
       tags,
       contacts,
+      scheduledMessages,
       filterNumber,
       showFavoritesOnly,
       setShowFavoritesOnly,
@@ -521,6 +627,10 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       getRepliesForMessage,
       getMessageById,
       getThreadForMessage,
+      addScheduledMessage,
+      cancelScheduledMessage,
+      updateScheduledMessage,
+      getScheduledMessageById,
     ],
   )
 

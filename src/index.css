@@ -1203,3 +1203,215 @@ body {
   border-left: 2px solid var(--green-muted);
 }
 
+/* ── Send Mode Selector ── */
+
+.send-mode-selector {
+  display: flex;
+  gap: 6px;
+}
+
+.send-mode-btn {
+  flex: 1;
+  background: rgba(51, 255, 102, 0.06);
+  border: 1px solid var(--green-muted);
+  color: var(--green-dim);
+  font-family: inherit;
+  font-size: 0.65rem;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.send-mode-btn:hover {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--green);
+}
+
+.send-mode-btn.active {
+  background: rgba(51, 255, 102, 0.18);
+  border-color: var(--green);
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.form-hint {
+  font-size: 0.55rem;
+  color: var(--green-muted);
+  margin-top: -4px;
+}
+
+/* ── Scheduled Messages Page ── */
+
+.sched-page-header {
+  text-align: center;
+}
+
+.sched-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.sched-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(51, 255, 102, 0.06);
+  border: 1px solid var(--green-muted);
+  color: var(--green-dim);
+  font-family: inherit;
+  font-size: 0.55rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+
+.sched-filter-btn:hover {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--green);
+}
+
+.sched-filter-btn.active {
+  background: rgba(51, 255, 102, 0.18);
+  border-color: var(--green);
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
+.sched-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sched-list {
+  list-style: none;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--text-dim);
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--green-muted) transparent;
+}
+
+.sched-item {
+  padding: 6px 8px;
+  background: rgba(51, 255, 102, 0.04);
+  border: 1px solid var(--text-dim);
+  font-size: 0.62rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.sched-item.sched-pending {
+  border-color: var(--green-muted);
+  background: rgba(51, 255, 102, 0.08);
+}
+
+.sched-item.sched-sent {
+  opacity: 0.7;
+}
+
+.sched-item.sched-cancelled {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.sched-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sched-status {
+  font-size: 0.55rem;
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: 2px;
+  font-weight: bold;
+}
+
+.sched-status-pending {
+  color: var(--green);
+  border-color: var(--green);
+  background: rgba(51, 255, 102, 0.15);
+  text-shadow: 0 0 3px var(--green-glow);
+  animation: blink 2s step-end infinite;
+}
+
+.sched-status-sent {
+  color: var(--green-dim);
+  border-color: var(--green-dim);
+  background: rgba(51, 255, 102, 0.08);
+}
+
+.sched-status-cancelled {
+  color: var(--green-muted);
+  border-color: var(--green-muted);
+  background: rgba(51, 255, 102, 0.04);
+}
+
+.sched-time {
+  color: var(--green-dim);
+  font-size: 0.58rem;
+  font-weight: bold;
+}
+
+.sched-item-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sched-name {
+  font-weight: bold;
+  color: var(--green);
+}
+
+.sched-number {
+  color: var(--green-muted);
+  font-size: 0.55rem;
+}
+
+.sched-item-content {
+  color: var(--green-dim);
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.sched-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dotted var(--text-dim);
+}
+
+.sched-created {
+  color: var(--green-muted);
+  font-size: 0.5rem;
+  flex: 1;
+}
+
+.sched-item-actions .pager-btn {
+  padding: 2px 8px;
+  font-size: 0.55rem;
+}
+
+/* ── Nav buttons with 4 items ── */
+
+.nav-buttons .pager-btn {
+  font-size: 0.6rem;
+  padding: 5px 6px;
+}
+

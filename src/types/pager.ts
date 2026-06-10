@@ -28,6 +28,16 @@ export interface NewMessageInput {
   replyToId: string | null
 }
 
+export interface ScheduledMessage {
+  id: string
+  number: string
+  content: string
+  tagId: string | null
+  scheduledTime: string
+  createdAt: string
+  status: 'pending' | 'sent' | 'cancelled'
+}
+
 export const DEFAULT_TAGS: Tag[] = [
   { id: 'work', name: '工作', color: '#33ff66' },
   { id: 'family', name: '家人', color: '#ff6699' },

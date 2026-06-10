@@ -3,6 +3,7 @@ import { PagerProvider } from './context/PagerContext'
 import { HomePage } from './pages/HomePage'
 import { SendPage } from './pages/SendPage'
 import { ContactsPage } from './pages/ContactsPage'
+import { ScheduledPage } from './pages/ScheduledPage'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/send" element={<SendPage />} />
             <Route path="/contacts" element={<ContactsPage />} />
+            <Route path="/scheduled" element={<ScheduledPage />} />
           </Routes>
           <footer className="app-footer">
             Mock 数据 · 无后端 · 复古绿屏 UI
