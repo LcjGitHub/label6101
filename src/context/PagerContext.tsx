@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { mockMessages } from '../data/mockMessages'
-import type { Contact, NewMessageInput, PagerMessage, ScheduledMessage, Tag } from '../types/pager'
+import type { Contact, NewMessageInput, PagerMessage, RepeatType, ScheduledMessage, Tag } from '../types/pager'
 import { DEFAULT_TAGS } from '../types/pager'
 
 const FAVORITES_STORAGE_KEY = 'pager_favorites'
@@ -59,10 +59,11 @@ interface PagerContextValue {
   getMessageById: (id: string | null) => PagerMessage | null
   getThreadForMessage: (messageId: string) => PagerMessage[]
   scheduledMessages: ScheduledMessage[]
-  addScheduledMessage: (input: NewMessageInput & { scheduledTime: string }) => void
+  addScheduledMessage: (input: NewMessageInput & { scheduledTime: string; repeatType: RepeatType }) => void
   cancelScheduledMessage: (id: string) => void
   updateScheduledMessage: (id: string, updates: Partial<ScheduledMessage>) => void
   getScheduledMessageById: (id: string) => ScheduledMessage | undefined
+  getNextScheduledTime: (baseTime: string, repeatType: RepeatType) => string | null
 }
 
 const PagerContext = createContext<PagerContextValue | null>(null)
@@ -71,6 +72,26 @@ function formatNow(): string {
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+}
+
+function calculateNextTime(baseTimeStr: string, repeatType: RepeatType): string | null {
+  if (repeatType === 'none') return null
+  const d = new Date(baseTimeStr.replace(' ', 'T'))
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  switch (repeatType) {
+    case 'daily':
+      d.setDate(d.getDate() + 1)
+      break
+    case 'weekly':
+      d.setDate(d.getDate() + 7)
+      break
+    case 'monthly':
+      d.setMonth(d.getMonth() + 1)
+      break
+  }
+
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function loadFavoriteIds(): Set<string> {
@@ -431,7 +452,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addScheduledMessage = useCallback(
-    (input: NewMessageInput & { scheduledTime: string }) => {
+    (input: NewMessageInput & { scheduledTime: string; repeatType: RepeatType }) => {
       const id = `sched_${Date.now()}`
       const newMsg: ScheduledMessage = {
         id,
@@ -443,6 +464,8 @@ export function PagerProvider({ children }: { children: ReactNode }) {
         createdAt: formatNow(),
         status: 'pending',
         sentMessageId: null,
+        repeatType: input.repeatType,
+        parentId: null,
       }
       setScheduledMessages((prev) => [newMsg, ...prev])
     },
@@ -471,6 +494,13 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     [scheduledMessages],
   )
 
+  const getNextScheduledTime = useCallback(
+    (baseTime: string, repeatType: RepeatType) => {
+      return calculateNextTime(baseTime, repeatType)
+    },
+    [],
+  )
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setScheduledMessages((prev) => {
@@ -478,6 +508,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       const currentMessageIds = new Set(messages.map((m) => m.id))
       let changed = false
       const updatedMap = new Map<string, ScheduledMessage>()
+      const newMessages: ScheduledMessage[] = []
 
       for (const msg of prev) {
         if (msg.status === 'sent') {
@@ -500,14 +531,36 @@ export function PagerProvider({ children }: { children: ReactNode }) {
           })
           changed = true
           updatedMap.set(msg.id, { ...msg, status: 'sent', sentMessageId: sentId })
+
+          if (msg.repeatType && msg.repeatType !== 'none') {
+            const nextTime = calculateNextTime(msg.scheduledTime, msg.repeatType)
+            if (nextTime && nextTime > now) {
+              const nextId = `sched_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+              const nextMsg: ScheduledMessage = {
+                id: nextId,
+                number: msg.number,
+                content: msg.content,
+                tagId: msg.tagId,
+                replyToId: msg.replyToId,
+                scheduledTime: nextTime,
+                createdAt: formatNow(),
+                status: 'pending',
+                sentMessageId: null,
+                repeatType: msg.repeatType,
+                parentId: msg.parentId || msg.id,
+              }
+              newMessages.push(nextMsg)
+            }
+          }
         }
       }
 
-      if (!changed) return prev
-      return prev.map((orig) => {
+      if (!changed && newMessages.length === 0) return prev
+      const updated = prev.map((orig) => {
         const upd = updatedMap.get(orig.id)
         return upd ?? orig
       })
+      return [...newMessages, ...updated]
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -532,11 +585,35 @@ export function PagerProvider({ children }: { children: ReactNode }) {
               tagId: target.tagId,
               replyToId: target.replyToId,
             })
-            return prev.map((m) =>
+
+            const updated = prev.map((m) =>
               m.id === msg.id
                 ? { ...m, status: 'sent' as const, sentMessageId: sentId }
                 : m,
             )
+
+            if (target.repeatType && target.repeatType !== 'none') {
+              const nextTime = calculateNextTime(target.scheduledTime, target.repeatType)
+              if (nextTime) {
+                const nextId = `sched_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+                const nextMsg: ScheduledMessage = {
+                  id: nextId,
+                  number: target.number,
+                  content: target.content,
+                  tagId: target.tagId,
+                  replyToId: target.replyToId,
+                  scheduledTime: nextTime,
+                  createdAt: formatNow(),
+                  status: 'pending',
+                  sentMessageId: null,
+                  repeatType: target.repeatType,
+                  parentId: target.parentId || target.id,
+                }
+                return [nextMsg, ...updated]
+              }
+            }
+
+            return updated
           })
         }, delay)
         timeouts.push(t)
@@ -641,6 +718,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       cancelScheduledMessage,
       updateScheduledMessage,
       getScheduledMessageById,
+      getNextScheduledTime,
     }),
     [
       messages,
@@ -683,6 +761,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       cancelScheduledMessage,
       updateScheduledMessage,
       getScheduledMessageById,
+      getNextScheduledTime,
     ],
   )
 

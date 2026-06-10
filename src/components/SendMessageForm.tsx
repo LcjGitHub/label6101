@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePager } from '../context/PagerContext'
 import { TagSelector } from './TagSelector'
 import { ContactSelector } from './ContactSelector'
-import type { Contact } from '../types/pager'
+import type { Contact, RepeatType } from '../types/pager'
 
 function parseDateTimeLocal(value: string): string {
   const d = new Date(value)
@@ -20,6 +20,7 @@ export function SendMessageForm() {
     addScheduledMessage,
     getScheduledMessageById,
     updateScheduledMessage,
+    getNextScheduledTime,
   } = usePager()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -112,6 +113,15 @@ export function SendMessageForm() {
     return ''
   })
 
+  const [repeatType, setRepeatType] = useState<RepeatType>(() => {
+    const editId = searchParams.get('edit')
+    if (editId) {
+      const msg = getScheduledMessageById(editId)
+      if (msg && msg.repeatType) return msg.repeatType
+    }
+    return 'none'
+  })
+
   const [editingId] = useState<string | null>(() => {
     const editId = searchParams.get('edit')
     if (editId) {
@@ -173,6 +183,7 @@ export function SendMessageForm() {
           tagId: selectedTagId,
           scheduledTime,
           replyToId: replyToIdForSchedule,
+          repeatType,
         })
         setStatus('OK: 定时消息已更新')
       } else {
@@ -182,6 +193,7 @@ export function SendMessageForm() {
           tagId: selectedTagId,
           replyToId: replyingTo ? replyingTo.id : null,
           scheduledTime,
+          repeatType,
         })
         setStatus('OK: 定时消息已设置')
       }
@@ -265,6 +277,45 @@ export function SendMessageForm() {
             onChange={(e) => setScheduledDateTime(e.target.value)}
           />
           <div className="form-hint">请选择未来的时间</div>
+
+          <label className="form-label">
+            重复周期
+          </label>
+          <div className="repeat-type-selector">
+            <button
+              type="button"
+              className={`repeat-type-btn ${repeatType === 'none' ? 'active' : ''}`}
+              onClick={() => setRepeatType('none')}
+            >
+              不重复
+            </button>
+            <button
+              type="button"
+              className={`repeat-type-btn ${repeatType === 'daily' ? 'active' : ''}`}
+              onClick={() => setRepeatType('daily')}
+            >
+              每天
+            </button>
+            <button
+              type="button"
+              className={`repeat-type-btn ${repeatType === 'weekly' ? 'active' : ''}`}
+              onClick={() => setRepeatType('weekly')}
+            >
+              每周
+            </button>
+            <button
+              type="button"
+              className={`repeat-type-btn ${repeatType === 'monthly' ? 'active' : ''}`}
+              onClick={() => setRepeatType('monthly')}
+            >
+              每月
+            </button>
+          </div>
+          {repeatType !== 'none' && scheduledDateTime && (
+            <div className="form-hint">
+              下次发送：{getNextScheduledTime(parseDateTimeLocal(scheduledDateTime), repeatType)}
+            </div>
+          )}
         </>
       )}
 

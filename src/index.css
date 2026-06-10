@@ -1408,6 +1408,59 @@ body {
   font-size: 0.55rem;
 }
 
+.sched-repeat-badge {
+  font-size: 0.52rem;
+  padding: 1px 5px;
+  border: 1px solid var(--green);
+  border-radius: 2px;
+  color: var(--green);
+  background: rgba(51, 255, 102, 0.12);
+  text-shadow: 0 0 3px var(--green-glow);
+}
+
+.sched-item.sched-repeating {
+  border-left: 2px solid var(--green);
+}
+
+.sched-next-time {
+  font-size: 0.55rem;
+  color: var(--green-dim);
+  padding: 2px 4px;
+  background: rgba(51, 255, 102, 0.06);
+  border-radius: 2px;
+}
+
+.repeat-type-selector {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.repeat-type-btn {
+  flex: 1;
+  min-width: 60px;
+  background: rgba(51, 255, 102, 0.06);
+  border: 1px solid var(--green-muted);
+  color: var(--green-dim);
+  font-family: inherit;
+  font-size: 0.62rem;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.repeat-type-btn:hover {
+  background: rgba(51, 255, 102, 0.12);
+  color: var(--green);
+}
+
+.repeat-type-btn.active {
+  background: rgba(51, 255, 102, 0.18);
+  border-color: var(--green);
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green-glow);
+}
+
 /* ── Nav buttons with 4 items ── */
 
 .nav-buttons .pager-btn {

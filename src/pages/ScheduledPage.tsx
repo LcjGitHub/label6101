@@ -4,7 +4,7 @@ import { NavButtons } from '../components/NavButtons'
 import { PagerShell } from '../components/PagerShell'
 import { StatusBar } from '../components/StatusBar'
 import { usePager } from '../context/PagerContext'
-import type { ScheduledMessage } from '../types/pager'
+import type { RepeatType, ScheduledMessage } from '../types/pager'
 
 type FilterStatus = 'all' | 'pending' | 'sent' | 'cancelled'
 
@@ -17,6 +17,7 @@ export function ScheduledPage() {
     getContactByNumber,
     unreadCount,
     messages,
+    getNextScheduledTime,
   } = usePager()
 
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
@@ -60,6 +61,19 @@ export function ScheduledPage() {
         return 'sched-status-sent'
       case 'cancelled':
         return 'sched-status-cancelled'
+    }
+  }
+
+  const getRepeatLabel = (repeatType: RepeatType) => {
+    switch (repeatType) {
+      case 'none':
+        return ''
+      case 'daily':
+        return '每天'
+      case 'weekly':
+        return '每周'
+      case 'monthly':
+        return '每月'
     }
   }
 
@@ -129,13 +143,23 @@ export function ScheduledPage() {
             const tag = msg.tagId ? getTagById(msg.tagId) : undefined
             const contact = getContactByNumber(msg.number)
             const hasContact = !!contact
+            const repeatLabel = getRepeatLabel(msg.repeatType || 'none')
+            const isRepeating = msg.repeatType && msg.repeatType !== 'none'
+            const nextTime = isRepeating && msg.status === 'pending'
+              ? getNextScheduledTime(msg.scheduledTime, msg.repeatType)
+              : null
 
             return (
-              <li key={msg.id} className={`sched-item sched-${msg.status}`}>
+              <li key={msg.id} className={`sched-item sched-${msg.status} ${isRepeating ? 'sched-repeating' : ''}`}>
                 <div className="sched-item-header">
                   <span className={`sched-status ${getStatusClass(msg.status)}`}>
                     {getStatusLabel(msg.status)}
                   </span>
+                  {isRepeating && (
+                    <span className="sched-repeat-badge">
+                      🔁 {repeatLabel}
+                    </span>
+                  )}
                   <span className="sched-time">{msg.scheduledTime}</span>
                 </div>
                 <div className="sched-item-info">
@@ -151,6 +175,11 @@ export function ScheduledPage() {
                     <span className="tag-dot" style={{ background: tag.color }} />
                     {tag.name}
                   </span>
+                )}
+                {nextTime && (
+                  <div className="sched-next-time">
+                    下次发送：{nextTime}
+                  </div>
                 )}
                 <div className="sched-item-actions">
                   <span className="sched-created">创建于 {msg.createdAt}</span>

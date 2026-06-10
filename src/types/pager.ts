@@ -28,6 +28,8 @@ export interface NewMessageInput {
   replyToId: string | null
 }
 
+export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly'
+
 export interface ScheduledMessage {
   id: string
   number: string
@@ -38,6 +40,8 @@ export interface ScheduledMessage {
   createdAt: string
   status: 'pending' | 'sent' | 'cancelled'
   sentMessageId?: string | null
+  repeatType: RepeatType
+  parentId?: string | null
 }
 
 export const DEFAULT_TAGS: Tag[] = [
