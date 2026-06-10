@@ -8,6 +8,10 @@ import type { RepeatType, ScheduledMessage } from '../types/pager'
 
 type FilterStatus = 'all' | 'pending' | 'sent' | 'cancelled'
 
+function getSeriesId(msg: ScheduledMessage): string {
+  return msg.parentId || msg.id
+}
+
 export function ScheduledPage() {
   const navigate = useNavigate()
   const {
@@ -17,10 +21,22 @@ export function ScheduledPage() {
     getContactByNumber,
     unreadCount,
     messages,
-    getNextScheduledTime,
   } = usePager()
 
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
+
+  const nextPendingBySeries = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const msg of scheduledMessages) {
+      if (msg.status !== 'pending') continue
+      if (!msg.repeatType || msg.repeatType === 'none') continue
+      const seriesId = getSeriesId(msg)
+      if (!map.has(seriesId) || msg.scheduledTime < map.get(seriesId)!) {
+        map.set(seriesId, msg.scheduledTime)
+      }
+    }
+    return map
+  }, [scheduledMessages])
 
   const filteredMessages = useMemo(() => {
     if (filterStatus === 'all') return scheduledMessages
@@ -145,9 +161,13 @@ export function ScheduledPage() {
             const hasContact = !!contact
             const repeatLabel = getRepeatLabel(msg.repeatType || 'none')
             const isRepeating = msg.repeatType && msg.repeatType !== 'none'
-            const nextTime = isRepeating && msg.status === 'pending'
-              ? getNextScheduledTime(msg.scheduledTime, msg.repeatType)
-              : null
+            let nextTime: string | null = null
+            if (isRepeating) {
+              if (msg.status === 'sent') {
+                const seriesId = getSeriesId(msg)
+                nextTime = nextPendingBySeries.get(seriesId) || null
+              }
+            }
 
             return (
               <li key={msg.id} className={`sched-item sched-${msg.status} ${isRepeating ? 'sched-repeating' : ''}`}>

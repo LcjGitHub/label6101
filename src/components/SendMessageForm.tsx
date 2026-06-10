@@ -20,7 +20,6 @@ export function SendMessageForm() {
     addScheduledMessage,
     getScheduledMessageById,
     updateScheduledMessage,
-    getNextScheduledTime,
   } = usePager()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -313,7 +312,7 @@ export function SendMessageForm() {
           </div>
           {repeatType !== 'none' && scheduledDateTime && (
             <div className="form-hint">
-              下次发送：{getNextScheduledTime(parseDateTimeLocal(scheduledDateTime), repeatType)}
+              首次发送：{parseDateTimeLocal(scheduledDateTime)}，之后按{repeatType === 'daily' ? '每天' : repeatType === 'weekly' ? '每周' : '每月'}重复
             </div>
           )}
         </>

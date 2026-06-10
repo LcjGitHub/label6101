@@ -94,6 +94,41 @@ function calculateNextTime(baseTimeStr: string, repeatType: RepeatType): string 
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function cleanupRepeatSeries(messages: ScheduledMessage[]): ScheduledMessage[] {
+  const bySeries = new Map<string, ScheduledMessage[]>()
+
+  for (const msg of messages) {
+    if (!msg.repeatType || msg.repeatType === 'none') continue
+    const seriesId = msg.parentId || msg.id
+    if (!bySeries.has(seriesId)) bySeries.set(seriesId, [])
+    bySeries.get(seriesId)!.push(msg)
+  }
+
+  const keepIds = new Set<string>(messages.map((m) => m.id))
+
+  for (const [, seriesMsgs] of bySeries) {
+    const pending = seriesMsgs
+      .filter((m) => m.status === 'pending')
+      .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime))
+    const sent = seriesMsgs
+      .filter((m) => m.status === 'sent')
+      .sort((a, b) => b.scheduledTime.localeCompare(a.scheduledTime))
+
+    if (pending.length > 1) {
+      for (let i = 1; i < pending.length; i++) {
+        keepIds.delete(pending[i].id)
+      }
+    }
+    if (sent.length > 1) {
+      for (let i = 1; i < sent.length; i++) {
+        keepIds.delete(sent[i].id)
+      }
+    }
+  }
+
+  return messages.filter((m) => keepIds.has(m.id))
+}
+
 function loadFavoriteIds(): Set<string> {
   try {
     const stored = localStorage.getItem(FAVORITES_STORAGE_KEY)
@@ -162,7 +197,15 @@ function loadScheduledMessages(): ScheduledMessage[] {
     const stored = localStorage.getItem(SCHEDULED_MESSAGES_STORAGE_KEY)
     if (stored) {
       const msgs = JSON.parse(stored)
-      if (Array.isArray(msgs)) return msgs
+      if (Array.isArray(msgs)) {
+        const normalized = msgs.map((msg) => ({
+          ...msg,
+          repeatType: msg.repeatType || 'none',
+          parentId: msg.parentId ?? null,
+          sentMessageId: msg.sentMessageId ?? null,
+        }))
+        return cleanupRepeatSeries(normalized)
+      }
     }
   } catch {
     // ignore parse errors
@@ -473,11 +516,24 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   )
 
   const cancelScheduledMessage = useCallback((id: string) => {
-    setScheduledMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === id ? { ...msg, status: 'cancelled' } : msg,
-      ),
-    )
+    setScheduledMessages((prev) => {
+      const target = prev.find((m) => m.id === id)
+      if (!target) return prev
+      const isRepeating = target.repeatType && target.repeatType !== 'none'
+      if (!isRepeating) {
+        return prev.map((msg) =>
+          msg.id === id ? { ...msg, status: 'cancelled' } : msg,
+        )
+      }
+      const seriesId = target.parentId || target.id
+      return prev.map((msg) => {
+        const msgSeriesId = msg.parentId || msg.id
+        if (msgSeriesId === seriesId && msg.status === 'pending') {
+          return { ...msg, status: 'cancelled' }
+        }
+        return msg
+      })
+    })
   }, [])
 
   const updateScheduledMessage = useCallback(
@@ -560,7 +616,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
         const upd = updatedMap.get(orig.id)
         return upd ?? orig
       })
-      return [...newMessages, ...updated]
+      return cleanupRepeatSeries([...newMessages, ...updated])
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -586,7 +642,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
               replyToId: target.replyToId,
             })
 
-            const updated = prev.map((m) =>
+            let result = prev.map((m) =>
               m.id === msg.id
                 ? { ...m, status: 'sent' as const, sentMessageId: sentId }
                 : m,
@@ -609,11 +665,11 @@ export function PagerProvider({ children }: { children: ReactNode }) {
                   repeatType: target.repeatType,
                   parentId: target.parentId || target.id,
                 }
-                return [nextMsg, ...updated]
+                result = [nextMsg, ...result]
               }
             }
 
-            return updated
+            return cleanupRepeatSeries(result)
           })
         }, delay)
         timeouts.push(t)
