@@ -3,6 +3,7 @@ import { MessageDetail } from '../components/MessageDetail'
 import { MessageList } from '../components/MessageList'
 import { NavButtons } from '../components/NavButtons'
 import { PagerShell } from '../components/PagerShell'
+import { SearchInput } from '../components/SearchInput'
 import { StatusBar } from '../components/StatusBar'
 import { FILTER_NO_TAG, usePager } from '../context/PagerContext'
 import type { Tag } from '../types/pager'
@@ -12,6 +13,9 @@ export function HomePage() {
     filteredMessages,
     filterNumber,
     setFilterNumber,
+    searchQuery,
+    setSearchQuery,
+    clearAllFilters,
     unreadCount,
     messages,
     selectedId,
@@ -33,7 +37,6 @@ export function HomePage() {
     setMessageTag,
     getContactByNumber,
     getMessageById,
-    getRepliesForMessage,
     getThreadForMessage,
     startReply,
   } = usePager()
@@ -58,6 +61,12 @@ export function HomePage() {
     return messages.filter((m) => m.tagId === tagId).length
   }
 
+  const hasAnyFilter =
+    !!filterNumber.trim() ||
+    !!searchQuery.trim() ||
+    showFavoritesOnly ||
+    !!filterTagId
+
   return (
     <PagerShell>
       <StatusBar
@@ -65,6 +74,22 @@ export function HomePage() {
         totalCount={filteredMessages.length}
       />
       <FilterBar value={filterNumber} onChange={setFilterNumber} />
+      <SearchInput value={searchQuery} onChange={setSearchQuery} />
+      {hasAnyFilter && (
+        <div className="clear-filters-row">
+          <span className="active-filters-hint">
+            🔍 已应用筛选
+          </span>
+          <button
+            type="button"
+            className="pager-btn pager-btn-sm clear-filters-btn"
+            onClick={clearAllFilters}
+            title="清除所有筛选条件"
+          >
+            清除全部
+          </button>
+        </div>
+      )}
       <div className="tags-filter-row">
         <button
           type="button"
@@ -118,19 +143,20 @@ export function HomePage() {
         showFavoritesOnly={showFavoritesOnly}
         filterNumber={filterNumber}
         filterTagId={filterTagId}
+        searchQuery={searchQuery}
         getTagById={getTagById}
         getContactByNumber={getContactByNumber}
         getThreadForMessage={getThreadForMessage}
       />
       <MessageDetail
         message={selectedMessage}
+        searchQuery={searchQuery}
         onToggleFavorite={handleToggleFavorite}
         onTogglePin={togglePin}
         getTagById={getTagById}
         setMessageTag={setMessageTag}
         getContactByNumber={getContactByNumber}
         getMessageById={getMessageById}
-        getRepliesForMessage={getRepliesForMessage}
         getThreadForMessage={getThreadForMessage}
         onStartReply={startReply}
         onSelectMessage={handleSelect}

@@ -20,6 +20,7 @@ const CONTACTS_STORAGE_KEY = 'pager_contacts'
 const SCHEDULED_MESSAGES_STORAGE_KEY = 'pager_scheduled_messages'
 const GROUPS_STORAGE_KEY = 'pager_groups'
 const FILTER_GROUP_STORAGE_KEY = 'pager_filter_group'
+const SEARCH_QUERY_STORAGE_KEY = 'pager_search_query'
 
 export const FILTER_NO_TAG = '__no_tag__'
 export const FILTER_NO_GROUP = '__no_group__'
@@ -33,12 +34,15 @@ interface PagerContextValue {
   contacts: Contact[]
   filterNumber: string
   setFilterNumber: (value: string) => void
+  searchQuery: string
+  setSearchQuery: (value: string) => void
   showFavoritesOnly: boolean
   setShowFavoritesOnly: (value: boolean) => void
   filterTagId: string | null
   setFilterTagId: (tagId: string | null) => void
   filterGroupId: string | null
   setFilterGroupId: (groupId: string | null) => void
+  clearAllFilters: () => void
   filteredMessages: PagerMessage[]
   favoriteCount: number
   pinnedCount: number
@@ -343,6 +347,14 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       return null
     }
   }, [])
+  const initialSearchQuery = useMemo(() => {
+    try {
+      const stored = localStorage.getItem(SEARCH_QUERY_STORAGE_KEY)
+      return stored || ''
+    } catch {
+      return ''
+    }
+  }, [])
 
   const initialMessages = useMemo(
     () =>
@@ -364,6 +376,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   const [showFavoritesOnly, setShowFavoritesOnlyState] = useState(initialShowFavorites)
   const [filterTagId, setFilterTagIdState] = useState<string | null>(initialFilterTagId)
   const [filterGroupId, setFilterGroupIdState] = useState<string | null>(initialFilterGroupId)
+  const [searchQuery, setSearchQueryState] = useState<string>(initialSearchQuery)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
 
@@ -389,6 +402,31 @@ export function PagerProvider({ children }: { children: ReactNode }) {
     setFilterGroupIdState(groupId)
     try {
       localStorage.setItem(FILTER_GROUP_STORAGE_KEY, groupId ?? 'null')
+    } catch {
+      // ignore storage errors
+    }
+  }, [])
+
+  const setSearchQuery = useCallback((query: string) => {
+    setSearchQueryState(query)
+    try {
+      localStorage.setItem(SEARCH_QUERY_STORAGE_KEY, query)
+    } catch {
+      // ignore storage errors
+    }
+  }, [])
+
+  const clearAllFilters = useCallback(() => {
+    setFilterNumber('')
+    setSearchQueryState('')
+    setShowFavoritesOnlyState(false)
+    setFilterTagIdState(null)
+    setFilterGroupIdState(null)
+    try {
+      localStorage.setItem(SHOW_FAVORITES_STORAGE_KEY, 'false')
+      localStorage.setItem(FILTER_TAG_STORAGE_KEY, 'null')
+      localStorage.setItem(FILTER_GROUP_STORAGE_KEY, 'null')
+      localStorage.setItem(SEARCH_QUERY_STORAGE_KEY, '')
     } catch {
       // ignore storage errors
     }
@@ -452,7 +490,8 @@ export function PagerProvider({ children }: { children: ReactNode }) {
   }, [pinRecords])
 
   const filteredMessages = useMemo(() => {
-    const query = filterNumber.trim()
+    const numberQuery = filterNumber.trim()
+    const contentQuery = searchQuery.trim().toLowerCase()
     let result = messages
     if (showFavoritesOnly) {
       result = result.filter((msg) => msg.favorite)
@@ -464,8 +503,14 @@ export function PagerProvider({ children }: { children: ReactNode }) {
         result = result.filter((msg) => msg.tagId === filterTagId)
       }
     }
-    if (query) {
-      result = result.filter((msg) => msg.number.includes(query))
+    if (numberQuery) {
+      result = result.filter((msg) => msg.number.includes(numberQuery))
+    }
+    if (contentQuery) {
+      result = result.filter((msg) =>
+        msg.content.toLowerCase().includes(contentQuery) ||
+        msg.number.toLowerCase().includes(contentQuery),
+      )
     }
     return [...result].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1
@@ -479,7 +524,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       }
       return b.time.localeCompare(a.time)
     })
-  }, [messages, showFavoritesOnly, filterNumber, filterTagId])
+  }, [messages, showFavoritesOnly, filterNumber, filterTagId, searchQuery])
 
   const unreadCount = useMemo(
     () => messages.filter((msg) => !msg.read).length,
@@ -982,12 +1027,15 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       contacts,
       filterNumber,
       setFilterNumber,
+      searchQuery,
+      setSearchQuery,
       showFavoritesOnly,
       setShowFavoritesOnly,
       filterTagId,
       setFilterTagId,
       filterGroupId,
       setFilterGroupId,
+      clearAllFilters,
       filteredMessages,
       favoriteCount,
       pinnedCount,
@@ -1041,12 +1089,15 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       contacts,
       scheduledMessages,
       filterNumber,
+      searchQuery,
+      setSearchQuery,
       showFavoritesOnly,
       setShowFavoritesOnly,
       filterTagId,
       setFilterTagId,
       filterGroupId,
       setFilterGroupId,
+      clearAllFilters,
       filteredMessages,
       favoriteCount,
       pinnedCount,

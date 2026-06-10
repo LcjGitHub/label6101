@@ -1,4 +1,5 @@
 import type { Contact, PagerMessage, Tag } from '../types/pager'
+import { highlightText } from '../utils/highlight'
 
 interface MessageListProps {
   messages: PagerMessage[]
@@ -9,9 +10,23 @@ interface MessageListProps {
   showFavoritesOnly: boolean
   filterNumber: string
   filterTagId: string | null
+  searchQuery: string
   getTagById: (tagId: string | null) => Tag | undefined
   getContactByNumber: (number: string) => Contact | undefined
   getThreadForMessage: (messageId: string) => PagerMessage[]
+}
+
+function renderHighlighted(segments: (string | { match: string })[]) {
+  return segments.map((segment, index) => {
+    if (typeof segment === 'string') {
+      return segment
+    }
+    return (
+      <span key={index} className="search-highlight">
+        {segment.match}
+      </span>
+    )
+  })
 }
 
 export function MessageList({
@@ -23,6 +38,7 @@ export function MessageList({
   showFavoritesOnly,
   filterNumber,
   filterTagId,
+  searchQuery,
   getTagById,
   getContactByNumber,
   getThreadForMessage,
@@ -31,8 +47,9 @@ export function MessageList({
     let emptyText = '-- 无匹配记录 --'
     const hasNumberFilter = !!filterNumber.trim()
     const hasTagFilter = !!filterTagId
-    const hasAnyFilter = hasNumberFilter || hasTagFilter
-    if (showFavoritesOnly && !hasAnyFilter) {
+    const hasSearchQuery = !!searchQuery.trim()
+    const hasAnyFilter = hasNumberFilter || hasTagFilter || hasSearchQuery || showFavoritesOnly
+    if (showFavoritesOnly && !hasSearchQuery && !hasNumberFilter && !hasTagFilter) {
       emptyText = '-- 暂无收藏消息 --'
     } else if (hasAnyFilter) {
       emptyText = '-- 当前筛选无匹配消息 --'
@@ -50,6 +67,9 @@ export function MessageList({
         const threadCount = thread.length - 1
         const hasThread = threadCount > 0
         const isReply = !!msg.replyToId
+        const previewText = msg.content.length > 18 ? `${msg.content.slice(0, 18)}…` : msg.content
+        const highlightedName = highlightText(displayName, searchQuery)
+        const highlightedPreview = highlightText(previewText, searchQuery)
         return (
           <li key={msg.id}>
             <div className="message-item-wrapper">
@@ -62,11 +82,11 @@ export function MessageList({
                 <span className="msg-number">
                   {msg.pinned && <span className="msg-pin-icon" title="置顶">📌</span>}
                   {isReply && <span className="msg-reply-icon" title="回复">↩</span>}
-                  {displayName}
+                  {renderHighlighted(highlightedName)}
                 </span>
                 <span className="msg-time">{msg.time.slice(5)}</span>
                 <span className="msg-preview">
-                  {msg.content.length > 18 ? `${msg.content.slice(0, 18)}…` : msg.content}
+                  {renderHighlighted(highlightedPreview)}
                 </span>
                 <span
                   className="msg-tag"

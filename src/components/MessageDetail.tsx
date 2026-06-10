@@ -1,17 +1,31 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Contact, PagerMessage, Tag } from '../types/pager'
+import { highlightText } from '../utils/highlight'
 import { TagSelector } from './TagSelector'
+
+function renderHighlighted(segments: (string | { match: string })[]) {
+  return segments.map((segment, index) => {
+    if (typeof segment === 'string') {
+      return segment
+    }
+    return (
+      <span key={index} className="search-highlight">
+        {segment.match}
+      </span>
+    )
+  })
+}
 
 interface MessageDetailProps {
   message: PagerMessage | null
+  searchQuery: string
   onToggleFavorite: (id: string, currentlyFavorite: boolean) => void
   onTogglePin: (id: string) => void
   getTagById: (tagId: string | null) => Tag | undefined
   setMessageTag: (messageId: string, tagId: string | null) => void
   getContactByNumber: (number: string) => Contact | undefined
   getMessageById: (id: string | null) => PagerMessage | null
-  getRepliesForMessage: (messageId: string) => PagerMessage[]
   getThreadForMessage: (messageId: string) => PagerMessage[]
   onStartReply: (messageId: string) => void
   onSelectMessage: (id: string) => void
@@ -19,6 +33,7 @@ interface MessageDetailProps {
 
 export function MessageDetail({
   message,
+  searchQuery,
   onToggleFavorite,
   onTogglePin,
   getTagById,
@@ -46,6 +61,8 @@ export function MessageDetail({
   const repliedTo = getMessageById(message.replyToId)
   const thread = getThreadForMessage(message.id)
   const hasThread = thread.length > 1
+  const highlightedContent = highlightText(message.content, searchQuery)
+  const highlightedName = highlightText(displayName, searchQuery)
 
   const handleReply = () => {
     onStartReply(message.id)
@@ -70,10 +87,13 @@ export function MessageDetail({
             >
               <span className="reply-reference-label">↩ 回复</span>
               <span className="reply-reference-content">
-                {getContactByNumber(repliedTo.number)?.name || repliedTo.number}:
-                {repliedTo.content.length > 20
-                  ? `${repliedTo.content.slice(0, 20)}…`
-                  : repliedTo.content}
+                {renderHighlighted(highlightText(getContactByNumber(repliedTo.number)?.name || repliedTo.number, searchQuery))}:
+                {renderHighlighted(highlightText(
+                  repliedTo.content.length > 20
+                    ? `${repliedTo.content.slice(0, 20)}…`
+                    : repliedTo.content,
+                  searchQuery,
+                ))}
               </span>
             </div>
           )}
@@ -81,7 +101,7 @@ export function MessageDetail({
             <span className="detail-label">FROM</span>
             <span className="detail-value">
               {message.pinned && <span className="detail-pin-label" title="已置顶">📌 </span>}
-              {displayName}
+              {renderHighlighted(highlightedName)}
             </span>
           </div>
           <div className="detail-row">
@@ -153,7 +173,7 @@ export function MessageDetail({
           </button>
         </div>
       </div>
-      <div className="detail-content">{message.content}</div>
+      <div className="detail-content">{renderHighlighted(highlightedContent)}</div>
 
       {hasThread && (
         <div className="reply-thread">
@@ -165,6 +185,8 @@ export function MessageDetail({
               const threadName = threadContact ? threadContact.name : threadMsg.number
               const threadTag = getTagById(threadMsg.tagId)
               const threadRepliedTo = getMessageById(threadMsg.replyToId)
+              const highlightedThreadName = highlightText(threadName, searchQuery)
+              const highlightedThreadContent = highlightText(threadMsg.content, searchQuery)
               return (
                 <div
                   key={threadMsg.id}
@@ -179,7 +201,7 @@ export function MessageDetail({
                       {threadRepliedTo && (
                         <span className="reply-thread-reply-icon" title="回复">↩</span>
                       )}
-                      {threadName}
+                      {renderHighlighted(highlightedThreadName)}
                       {isCurrent && <span className="reply-thread-current-label"> 当前</span>}
                     </span>
                     <span className="reply-thread-time">{threadMsg.time.slice(5)}</span>
@@ -192,7 +214,7 @@ export function MessageDetail({
                       </span>
                     )}
                   </div>
-                  <div className="reply-thread-content">{threadMsg.content}</div>
+                  <div className="reply-thread-content">{renderHighlighted(highlightedThreadContent)}</div>
                 </div>
               )
             })}
