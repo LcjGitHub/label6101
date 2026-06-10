@@ -141,7 +141,7 @@ export function MessageDetail({
             onClick={() => onTogglePin(message.id)}
             title={message.pinned ? '取消置顶' : '置顶'}
           >
-            {message.pinned ? '📌' : '📍'}
+            {message.pinned ? '📌 取消置顶' : '📍 置顶'}
           </button>
           <button
             type="button"

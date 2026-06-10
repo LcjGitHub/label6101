@@ -798,7 +798,7 @@ export function PagerProvider({ children }: { children: ReactNode }) {
         if (msg.pinned) {
           return { ...msg, pinned: false, pinnedAt: null }
         } else {
-          return { ...msg, pinned: true, pinnedAt: formatNow() }
+          return { ...msg, pinned: true, pinnedAt: new Date().toISOString() }
         }
       }),
     )

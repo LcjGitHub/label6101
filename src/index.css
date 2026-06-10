@@ -325,6 +325,8 @@ body {
   border: 1px solid var(--text-dim);
   scrollbar-width: thin;
   scrollbar-color: var(--green-muted) transparent;
+  position: relative;
+  z-index: 3;
 }
 
 .message-item {
@@ -401,6 +403,8 @@ body {
   min-height: 100px;
   font-size: 0.68rem;
   background: rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 1;
 }
 
 .message-detail.empty {
@@ -563,10 +567,17 @@ body {
   display: flex;
   align-items: stretch;
   gap: 0;
+  position: relative;
 }
 
 .message-item-wrapper .message-item {
   flex: 1;
+}
+
+.message-item-wrapper .pin-toggle,
+.message-item-wrapper .fav-toggle {
+  position: relative;
+  z-index: 4;
 }
 
 .fav-toggle {
