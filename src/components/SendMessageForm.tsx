@@ -93,6 +93,8 @@ export function SendMessageForm() {
               className="reply-preview-cancel"
               onClick={() => {
                 cancelReply()
+                setNumber('')
+                setSelectedContactId(null)
                 setSelectedTagId(null)
               }}
             >

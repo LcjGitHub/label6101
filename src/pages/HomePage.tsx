@@ -114,7 +114,7 @@ export function HomePage() {
         filterTagId={filterTagId}
         getTagById={getTagById}
         getContactByNumber={getContactByNumber}
-        getRepliesForMessage={getRepliesForMessage}
+        getThreadForMessage={getThreadForMessage}
       />
       <MessageDetail
         message={selectedMessage}

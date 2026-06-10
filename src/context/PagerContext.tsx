@@ -274,35 +274,29 @@ export function PagerProvider({ children }: { children: ReactNode }) {
       const currentMsg = messages.find((m) => m.id === messageId)
       if (!currentMsg) return []
 
-      const ancestors: PagerMessage[] = []
-      let ancestorId = currentMsg.replyToId
-      while (ancestorId) {
-        const ancestor = messages.find((m) => m.id === ancestorId)
-        if (ancestor) {
-          ancestors.unshift(ancestor)
-          ancestorId = ancestor.replyToId
+      let rootMsg = currentMsg
+      while (rootMsg.replyToId) {
+        const parent = messages.find((m) => m.id === rootMsg.replyToId)
+        if (parent) {
+          rootMsg = parent
         } else {
           break
         }
       }
 
-      const collectDescendants = (parentId: string): PagerMessage[] => {
+      const collectAllDescendants = (parentId: string): PagerMessage[] => {
         const directReplies = messages.filter((m) => m.replyToId === parentId)
         const result: PagerMessage[] = [...directReplies]
         for (const reply of directReplies) {
-          result.push(...collectDescendants(reply.id))
+          result.push(...collectAllDescendants(reply.id))
         }
         return result
       }
 
-      const descendants = collectDescendants(messageId)
-      const allMessages = [...ancestors, currentMsg, ...descendants]
+      const allDescendants = collectAllDescendants(rootMsg.id)
+      const threadMessages = [rootMsg, ...allDescendants]
 
-      const uniqueMessages = Array.from(
-        new Map(allMessages.map((m) => [m.id, m])).values(),
-      )
-
-      return uniqueMessages.sort((a, b) => a.time.localeCompare(b.time))
+      return threadMessages.sort((a, b) => a.time.localeCompare(b.time))
     },
     [messages],
   )

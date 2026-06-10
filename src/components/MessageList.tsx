@@ -10,7 +10,7 @@ interface MessageListProps {
   filterTagId: string | null
   getTagById: (tagId: string | null) => Tag | undefined
   getContactByNumber: (number: string) => Contact | undefined
-  getRepliesForMessage: (messageId: string) => PagerMessage[]
+  getThreadForMessage: (messageId: string) => PagerMessage[]
 }
 
 export function MessageList({
@@ -23,7 +23,7 @@ export function MessageList({
   filterTagId,
   getTagById,
   getContactByNumber,
-  getRepliesForMessage,
+  getThreadForMessage,
 }: MessageListProps) {
   if (messages.length === 0) {
     let emptyText = '-- 无匹配记录 --'
@@ -44,8 +44,9 @@ export function MessageList({
         const tag = getTagById(msg.tagId)
         const contact = getContactByNumber(msg.number)
         const displayName = contact ? contact.name : msg.number
-        const replies = getRepliesForMessage(msg.id)
-        const hasReplies = replies.length > 0
+        const thread = getThreadForMessage(msg.id)
+        const threadCount = thread.length - 1
+        const hasThread = threadCount > 0
         const isReply = !!msg.replyToId
         return (
           <li key={msg.id}>
@@ -69,7 +70,7 @@ export function MessageList({
                   style={tag ? { borderColor: tag.color, color: tag.color } : {}}
                 >
                   {tag ? tag.name : '无标签'}
-                  {hasReplies && <span className="msg-reply-count"> · {replies.length}回复</span>}
+                  {hasThread && <span className="msg-reply-count"> · {threadCount}条</span>}
                 </span>
               </button>
               <button
